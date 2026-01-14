@@ -22,1688 +22,1551 @@ import {
   Video,
   Search,
   ClipboardList,
-  Home,
-  Link as LinkIcon,
+  Layout,
+  RefreshCw,
+  Trash2,
+  Info,
+  Edit3,
+  LogOut,
 } from "lucide-react";
 
-/**
- * ✅ COPIAR E COLAR
- * Onde colar:
- * 1) Vercel (Project > Code) ou GitHub -> arquivo: src/App.jsx
- * 2) Apague tudo e cole este código inteiro
- * 3) Garanta que Tailwind está ativo no projeto (como já estava)
- */
+/* =========================================================
+  1) DESIGN TOKENS (APPLE-LIKE / PREMIUM)
+========================================================= */
 
-// ---------------- UI helpers ----------------
+const Tokens = {
+  colors: {
+    primary: "#007AFF",
+    success: "#34C759",
+    warning: "#FF9500",
+    danger: "#FF3B30",
+    indigo: "#5856D6",
+    text: {
+      primary: "#1C1C1E",
+      secondary: "#8E8E93",
+      tertiary: "#C7C7CC",
+    },
+    background: "#F2F2F7",
+    surface: "#FFFFFF",
+    border: "#E5E5EA",
+    surface2: "#FAFAFC",
+  },
+  radius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    full: 9999,
+  },
+  shadow: {
+    sm: "0 2px 8px rgba(0,0,0,0.04)",
+    md: "0 8px 24px rgba(0,0,0,0.10)",
+  },
+};
 
-const Card = ({ children, className = "" }) => (
+/* =========================================================
+  2) BASE COMPONENTS (DESIGN KIT)
+========================================================= */
+
+const cx = (...classes) => classes.filter(Boolean).join(" ");
+
+const Surface = ({ children, className = "", style = {} }) => (
   <div
-    className={`bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 ${className}`}
+    className={cx("bg-white", className)}
+    style={{
+      background: Tokens.colors.surface,
+      ...style,
+    }}
   >
     {children}
   </div>
 );
 
+const Card = ({ children, className = "", title, subtitle, footer }) => (
+  <div
+    className={cx("p-5 md:p-6", className)}
+    style={{
+      background: Tokens.colors.surface,
+      border: `1px solid ${Tokens.colors.border}`,
+      borderRadius: Tokens.radius.xl,
+      boxShadow: Tokens.shadow.sm,
+    }}
+  >
+    {(title || subtitle) && (
+      <div className="mb-4">
+        {title && (
+          <h3
+            className="text-[17px] font-bold tracking-tight"
+            style={{ color: Tokens.colors.text.primary }}
+          >
+            {title}
+          </h3>
+        )}
+        {subtitle && (
+          <p
+            className="text-[13px] font-medium"
+            style={{ color: Tokens.colors.text.secondary }}
+          >
+            {subtitle}
+          </p>
+        )}
+      </div>
+    )}
+    <div className="space-y-4">{children}</div>
+    {footer && (
+      <div
+        className="mt-5 pt-4"
+        style={{ borderTop: `1px solid ${Tokens.colors.background}` }}
+      >
+        {footer}
+      </div>
+    )}
+  </div>
+);
+
 const Badge = ({ children, variant = "default" }) => {
-  const styles = {
-    default: "bg-blue-50 text-blue-600",
-    success: "bg-emerald-50 text-emerald-600",
-    warning: "bg-amber-50 text-amber-600",
-    danger: "bg-rose-50 text-rose-600",
-    info: "bg-purple-50 text-purple-600",
-    indigo: "bg-indigo-50 text-indigo-600",
+  const map = {
+    default: { bg: "#F1F2F6", fg: "#5C5C60" },
+    success: { bg: "#E9F9EE", fg: Tokens.colors.success },
+    info: { bg: "#EBF5FF", fg: Tokens.colors.primary },
+    warning: { bg: "#FFF4E5", fg: Tokens.colors.warning },
+    danger: { bg: "#FFEBEC", fg: Tokens.colors.danger },
+    indigo: { bg: "#EEEAFE", fg: Tokens.colors.indigo },
   };
+  const s = map[variant] || map.default;
   return (
     <span
-      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${styles[variant]}`}
+      className="px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-tight inline-flex items-center gap-1"
+      style={{ background: s.bg, color: s.fg }}
     >
       {children}
     </span>
   );
 };
 
-const Modal = ({ open, title, children, onClose }) => {
+const Button = ({
+  children,
+  variant = "primary",
+  icon: Icon,
+  onClick,
+  className = "",
+  loading = false,
+  disabled = false,
+  size = "md",
+  type = "button",
+}) => {
+  const sizes = {
+    sm: "px-4 py-2.5 text-[12px] rounded-2xl",
+    md: "px-5 py-3 text-sm rounded-2xl",
+    lg: "px-6 py-3.5 text-sm rounded-[22px]",
+  };
+  const styles = {
+    primary: {
+      background: Tokens.colors.primary,
+      color: "white",
+      border: "1px solid transparent",
+    },
+    secondary: {
+      background: "#F1F2F6",
+      color: Tokens.colors.text.primary,
+      border: `1px solid ${Tokens.colors.border}`,
+    },
+    ghost: {
+      background: "transparent",
+      color: Tokens.colors.primary,
+      border: `1px solid ${Tokens.colors.border}`,
+    },
+    destructive: {
+      background: "#FFEBEC",
+      color: Tokens.colors.danger,
+      border: "1px solid transparent",
+    },
+  };
+  const s = styles[variant] || styles.primary;
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={cx(
+        "inline-flex items-center justify-center font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100",
+        sizes[size],
+        className
+      )}
+      style={{
+        ...s,
+        boxShadow: variant === "primary" ? "0 6px 18px rgba(0,122,255,0.18)" : "none",
+      }}
+    >
+      {loading ? (
+        <RefreshCw className="animate-spin mr-2" size={18} />
+      ) : Icon ? (
+        <Icon className="mr-2" size={18} />
+      ) : null}
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ label, placeholder, type = "text", value, onChange }) => (
+  <div className="space-y-1.5 w-full">
+    {label && (
+      <label
+        className="text-[12px] font-bold px-1 uppercase tracking-wider"
+        style={{ color: Tokens.colors.text.secondary }}
+      >
+        {label}
+      </label>
+    )}
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full border-0 px-4 py-3.5 text-sm focus:ring-2 focus:ring-blue-100 transition-all"
+      style={{
+        background: Tokens.colors.background,
+        borderRadius: Tokens.radius.xl,
+        color: Tokens.colors.text.primary,
+      }}
+    />
+  </div>
+);
+
+const Textarea = ({ label, placeholder, value, onChange, rows = 5 }) => (
+  <div className="space-y-1.5 w-full">
+    {label && (
+      <label
+        className="text-[12px] font-bold px-1 uppercase tracking-wider"
+        style={{ color: Tokens.colors.text.secondary }}
+      >
+        {label}
+      </label>
+    )}
+    <textarea
+      rows={rows}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full border-0 px-4 py-3.5 text-sm focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+      style={{
+        background: Tokens.colors.background,
+        borderRadius: Tokens.radius.xl,
+        color: Tokens.colors.text.primary,
+      }}
+    />
+  </div>
+);
+
+const Modal = ({ open, title, subtitle, children, onClose }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center">
-      <div
-        className="absolute inset-0 bg-slate-900/40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="relative w-full md:max-w-xl bg-white rounded-t-3xl md:rounded-3xl shadow-xl border border-slate-100 p-5 md:p-6">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">
-              Modal
-            </p>
-            <h3 className="text-lg font-black text-slate-800">{title}</h3>
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-x-0 top-10 md:top-16 px-4">
+        <div
+          className="mx-auto max-w-lg p-5 md:p-6"
+          style={{
+            background: "rgba(255,255,255,0.92)",
+            border: `1px solid ${Tokens.colors.border}`,
+            borderRadius: Tokens.radius.xl,
+            boxShadow: Tokens.shadow.md,
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-[17px] font-black" style={{ color: Tokens.colors.text.primary }}>
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-[13px] font-medium mt-1" style={{ color: Tokens.colors.text.secondary }}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-2xl"
+              style={{ color: Tokens.colors.text.secondary }}
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600"
-          >
-            <X size={16} />
-          </button>
+          <div className="mt-4">{children}</div>
         </div>
-        {children}
       </div>
     </div>
   );
 };
 
-// ---------------- App ----------------
+/* =========================================================
+  3) UI PLAYGROUND (INTERNAL DOC)
+========================================================= */
+
+const UIPlayground = () => (
+  <div className="space-y-8">
+    <div>
+      <h1 className="text-3xl md:text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+        Design System
+      </h1>
+      <p className="text-sm font-medium mt-2" style={{ color: Tokens.colors.text.secondary }}>
+        Biblioteca de componentes premium VitaFlow (tokens + componentes base).
+      </p>
+    </div>
+
+    <Card title="Botões" subtitle="Variações e estados">
+      <div className="flex flex-wrap gap-3">
+        <Button icon={Plus}>Primary</Button>
+        <Button variant="secondary" icon={Settings}>
+          Secondary
+        </Button>
+        <Button variant="ghost" icon={Info}>
+          Ghost
+        </Button>
+        <Button variant="destructive" icon={Trash2}>
+          Destructive
+        </Button>
+        <Button loading icon={RefreshCw}>
+          Loading
+        </Button>
+      </div>
+    </Card>
+
+    <Card title="Inputs" subtitle="Campos padrão">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input label="Nome" placeholder="Ex: Ricardo Souza" value="" onChange={() => {}} />
+        <Input label="Telefone" placeholder="(11) 99999-9999" value="" onChange={() => {}} />
+      </div>
+    </Card>
+
+    <Card title="Badges" subtitle="Estados">
+      <div className="flex flex-wrap gap-2">
+        <Badge>Default</Badge>
+        <Badge variant="info">Info</Badge>
+        <Badge variant="success">Sucesso</Badge>
+        <Badge variant="warning">Atenção</Badge>
+        <Badge variant="danger">Crítico</Badge>
+        <Badge variant="indigo">Indigo</Badge>
+      </div>
+    </Card>
+  </div>
+);
+
+/* =========================================================
+  4) APP
+========================================================= */
+
+function startOfMonthISO(d = new Date()) {
+  const x = new Date(d.getFullYear(), d.getMonth(), 1);
+  return x.toISOString().slice(0, 10);
+}
+
+function todayISO(d = new Date()) {
+  return d.toISOString().slice(0, 10);
+}
+
+function clampInt(n, min, max) {
+  const x = parseInt(n, 10);
+  if (Number.isNaN(x)) return min;
+  return Math.max(min, Math.min(max, x));
+}
 
 export default function App() {
   // Views
   const [view, setView] = useState("login"); // login | dashboard
   const [userRole, setUserRole] = useState(null); // paciente | medico | apoio
-  const [activeTab, setActiveTab] = useState("home"); // home | appointments | access (paciente) | home (medico) ...
-  const [showLegalNotice, setShowLegalNotice] = useState(true);
 
-  // Doctor - selected patient
-  const [selectedPatientId, setSelectedPatientId] = useState(null); // medico: patient detail
-  const selectedPatient = useMemo(
-    () => (selectedPatientId ? patientsData.find((p) => p.id === selectedPatientId) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedPatientId]
-  );
+  // Navigation in dashboard
+  const [activeTab, setActiveTab] = useState("home"); // home | calendar | history | playground | profileUpdate
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
 
-  // Disposition (patient)
-  const [disposition, setDisposition] = useState(7);
+  // Back/menu behavior
+  const [backSheetOpen, setBackSheetOpen] = useState(false);
 
-  // ---------------- Mock "DB" ----------------
-
-  const [patientsData, setPatientsData] = useState([
+  // Mock Data (in-memory)
+  const [patients] = useState([
     {
       id: "p1",
       name: "Ricardo Souza",
       code: "VF-123",
-      birth: "1985-05-12",
+      birth: "12/05/1985",
       blood: "O+",
       phone: "(11) 98888-7777",
-      routine: { weight: "82kg", height: "180cm", profession: "Engenheiro" },
-      health: { conditions: "Hipertensão leve", medications: "Losartana 50mg" },
-      dispositionHistory: [
-        { date: "2026-01-12", value: 7, text: "Dia ok, um pouco cansado no fim." },
-        { date: "2026-01-13", value: 9, text: "Acordei bem, rotina tranquila." },
-        { date: "2026-01-14", value: 8, text: "Melhor hoje, sem dor de cabeça." },
-      ],
-      medicationStatus: [
-        { name: "Losartana", time: "08:00", status: "tomado" },
-        { name: "Anlodipino", time: "20:00", status: "pendente" },
-      ],
-      doctorsAuthorized: ["d1"],
     },
   ]);
 
-  const [doctorProfile, setDoctorProfile] = useState({
-    id: "d1",
+  const [patientProfile, setPatientProfile] = useState({
+    fullName: "Ricardo Souza",
+    phone: "(11) 98888-7777",
+    address: "Rua Exemplo, 123 - São Paulo/SP",
+    blood: "O+",
+    healthPlan: "Plano Vida - 000123",
+    referenceDoctors: "Dr. Alberto Rossi",
+  });
+
+  // Patient daily report
+  const [dailyReport, setDailyReport] = useState("");
+  const [disposition, setDisposition] = useState(8);
+
+  // Medication schedule + adherence log
+  const [medications, setMedications] = useState([
+    { id: "m1", name: "Losartana", dose: "50mg", time: "08:00", instructions: "Em jejum" },
+    { id: "m2", name: "Anlodipino", dose: "5mg", time: "20:00", instructions: "" },
+  ]);
+
+  // log entries: { dateISO, medicationId, taken(true/false), timeActual }
+  const [medLog, setMedLog] = useState([
+    { dateISO: "2026-01-02", medicationId: "m1", taken: true, timeActual: "08:05" },
+    { dateISO: "2026-01-02", medicationId: "m2", taken: true, timeActual: "20:10" },
+    { dateISO: "2026-01-03", medicationId: "m1", taken: true, timeActual: "08:01" },
+    { dateISO: "2026-01-03", medicationId: "m2", taken: false, timeActual: "" },
+  ]);
+
+  const [appointments, setAppointments] = useState([
+    {
+      id: "a1",
+      doctor: "Dr. Alberto Rossi",
+      specialty: "Cardiologia",
+      date: "20 Jan 2026",
+      time: "14:30",
+      type: "Presencial",
+      location: "Clínica Vida, Sala 302",
+    },
+    {
+      id: "a2",
+      doctor: "Dra. Beatriz",
+      specialty: "Clínico Geral",
+      date: "05 Fev 2026",
+      time: "10:00",
+      type: "Teleconsulta",
+      location: "Link via App",
+    },
+  ]);
+
+  // Doctor profile + linkage
+  const [doctorProfile] = useState({
     name: "Dr. Alberto Rossi",
     crm: "123456-SP",
     specialty: "Cardiologia",
     myPatients: ["p1"],
   });
 
-  const [appointments, setAppointments] = useState([
-    {
-      id: "a1",
-      patientId: "p1",
-      doctor: "Dr. Alberto Rossi",
-      specialty: "Cardiologia",
-      date: "2026-01-20",
-      time: "14:30",
-      type: "Presencial",
-      location: "Clínica Vida, Sala 302",
-      goal: "Rotina",
-    },
-    {
-      id: "a2",
-      patientId: "p1",
-      doctor: "Dra. Beatriz",
-      specialty: "Clínico Geral",
-      date: "2026-02-05",
-      time: "10:00",
-      type: "Teleconsulta",
-      location: "Link via App",
-      goal: "Acompanhamento",
-    },
-  ]);
-
-  const [prescriptions, setPrescriptions] = useState([
-    {
-      id: "rx1",
-      patientId: "p1",
-      name: "Losartana",
-      dose: "50mg",
-      freq: "1x/dia",
-      time: "08:00",
-      instructions: "Jejum",
-      start: "2026-01-01",
-      end: "",
-    },
-  ]);
-
   const [medicalNotes, setMedicalNotes] = useState([
     {
       id: "n1",
       patientId: "p1",
+      date: "2026-01-10",
       text: "Paciente apresenta boa adesão ao tratamento inicial.",
       visibleToPatient: true,
       visibleToSupport: false,
-      date: "2026-01-10",
     },
   ]);
 
-  // ---------------- Helpers ----------------
+  const LegalBanner = () => (
+    <div
+      className="p-4 rounded-2xl flex items-start gap-3"
+      style={{
+        background: "#FFF4E5",
+        border: "1px solid #FFE7C2",
+      }}
+    >
+      <AlertTriangle size={18} style={{ color: Tokens.colors.warning }} className="mt-0.5" />
+      <div className="text-[11px] leading-relaxed font-medium" style={{ color: "#7A4B00" }}>
+        <div className="font-black uppercase tracking-widest text-[10px]" style={{ color: "#7A4B00" }}>
+          Aviso legal obrigatório
+        </div>
+        Este aplicativo é uma ferramenta de organização pessoal. O app <strong>não realiza diagnósticos</strong> e não
+        substitui avaliação médica.
+      </div>
+    </div>
+  );
 
-  const formatDateBR = (iso) => {
-    // iso: YYYY-MM-DD
-    const [y, m, d] = iso.split("-");
-    return `${d}/${m}/${y}`;
-  };
-
-  const initials = (name) => {
-    const parts = name.split(" ").filter(Boolean);
-    return parts.slice(0, 2).map((p) => p[0].toUpperCase()).join("");
-  };
-
-  const genId = (prefix) => `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
-
-  // ---------------- Auth / Navigation ----------------
-
-  const handleLogout = () => {
-    setUserRole(null);
-    setView("login");
-    setActiveTab("home");
-    setSelectedPatientId(null);
-    setShowLegalNotice(true);
-  };
-
-  const handleLogin = (role) => {
+  const login = (role) => {
     setUserRole(role);
     setView("dashboard");
     setActiveTab("home");
     setSelectedPatientId(null);
   };
 
-  const goHome = () => {
+  const logout = () => {
+    setView("login");
+    setUserRole(null);
     setActiveTab("home");
     setSelectedPatientId(null);
+    setBackSheetOpen(false);
   };
 
-  // ---------------- Legal Banner ----------------
+  // Always-visible top back button rule:
+  // - Shows inside dashboard as a sticky top bar.
+  // - On press: opens a sheet with options:
+  //   - Voltar como Paciente / Médico / Rede de Apoio
+  //   - Atualizar cadastro (quando role = paciente)
+  //   - Encerrar sessão
+  const openBackSheet = () => setBackSheetOpen(true);
 
-  const LegalBanner = () => (
-    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start space-x-3 mb-6">
-      <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />
-      <div className="text-[11px] text-amber-800 leading-relaxed font-medium">
-        <p className="font-bold mb-1 uppercase text-amber-900">Aviso Legal Obrigatório</p>
-        Este aplicativo é uma ferramenta de organização pessoal. O app <strong>não realiza diagnósticos</strong> e
-        não substitui avaliação médica. Todo dado inserido é de responsabilidade do usuário e/ou do profissional.
+  const headerContext = useMemo(() => {
+    if (view !== "dashboard") return null;
+
+    if (userRole === "medico") {
+      if (selectedPatientId) return { title: "Paciente", subtitle: "Visão clínica" };
+      return { title: "Médico", subtitle: `${doctorProfile.specialty} • ${doctorProfile.crm}` };
+    }
+
+    if (userRole === "apoio") return { title: "Rede de Apoio", subtitle: "Acompanhamento autorizado" };
+
+    // paciente
+    if (activeTab === "profileUpdate") return { title: "Atualização de Cadastro", subtitle: "Revise seus dados" };
+    return { title: "Paciente", subtitle: "Organização diária" };
+  }, [view, userRole, activeTab, selectedPatientId, doctorProfile]);
+
+  // Adherence calculation for month (simple expected = meds * days from start-of-month to today)
+  const adherence = useMemo(() => {
+    const start = startOfMonthISO(new Date("2026-01-14T00:00:00")); // mock date base
+    const end = todayISO(new Date("2026-01-14T00:00:00")); // mock today
+    const days = 14; // keep deterministic for mock Jan/14
+
+    const expected = medications.length * days;
+    const taken = medLog.filter((e) => e.dateISO >= start && e.dateISO <= end && e.taken).length;
+
+    const pct = expected ? Math.round((taken / expected) * 100) : 0;
+    return { expected, taken, pct, days };
+  }, [medications.length, medLog]);
+
+  const todaySchedule = useMemo(() => {
+    // For mock: show all meds; in real: filter by day/time.
+    return medications.map((m) => {
+      const logToday = medLog.find((e) => e.dateISO === "2026-01-14" && e.medicationId === m.id);
+      return {
+        ...m,
+        status: logToday?.taken ? "tomado" : "pendente",
+        timeActual: logToday?.timeActual || "",
+      };
+    });
+  }, [medications, medLog]);
+
+  const confirmMedication = (medicationId) => {
+    // write today log as taken
+    const dateISO = "2026-01-14";
+    const now = "08:00"; // mock
+    setMedLog((prev) => {
+      const idx = prev.findIndex((e) => e.dateISO === dateISO && e.medicationId === medicationId);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], taken: true, timeActual: now };
+        return copy;
+      }
+      return [...prev, { dateISO, medicationId, taken: true, timeActual: now }];
+    });
+  };
+
+  /* =========================
+     Screens
+  ========================= */
+
+  const LoginView = () => (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
+      <div className="max-w-sm w-full space-y-8">
+        <div className="text-center space-y-2">
+          <div
+            className="inline-flex p-4 mb-2"
+            style={{
+              background: Tokens.colors.primary,
+              borderRadius: 22,
+              boxShadow: "0 18px 28px rgba(0,122,255,0.18)",
+            }}
+          >
+            <Heart className="text-white" size={32} fill="currentColor" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter italic" style={{ color: Tokens.colors.text.primary }}>
+            VitaFlow
+          </h1>
+          <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
+            Saúde com experiência premium.
+          </p>
+        </div>
+
+        <Card>
+          <div className="text-center">
+            <div
+              className="text-[12px] font-black uppercase tracking-widest"
+              style={{ color: Tokens.colors.text.secondary }}
+            >
+              Acessar conta
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Button className="w-full" icon={User} onClick={() => login("paciente")}>
+              Sou Paciente
+            </Button>
+            <Button className="w-full" variant="secondary" icon={Stethoscope} onClick={() => login("medico")}>
+              Sou Médico
+            </Button>
+            <Button className="w-full" variant="secondary" icon={Users} onClick={() => login("apoio")}>
+              Rede de Apoio
+            </Button>
+          </div>
+
+          <div className="mt-5">
+            <LegalBanner />
+          </div>
+        </Card>
+
+        <p className="text-center text-[11px] font-medium px-4" style={{ color: Tokens.colors.text.secondary }}>
+          Ao entrar, você concorda com nossos termos de privacidade e compartilhamento de dados.
+        </p>
       </div>
     </div>
   );
 
-  // ---------------- Doctor: Link patient modal ----------------
+  const StickyTopBar = () => (
+    <div className="sticky top-0 z-50 -mx-6 md:-mx-12 px-6 md:px-12 pt-4 pb-3">
+      <div
+        className="flex items-center justify-between gap-3 px-3 py-2.5"
+        style={{
+          background: "rgba(255,255,255,0.82)",
+          border: `1px solid ${Tokens.colors.border}`,
+          borderRadius: Tokens.radius.xl,
+          backdropFilter: "blur(18px)",
+          boxShadow: Tokens.shadow.sm,
+        }}
+      >
+        <button
+          onClick={openBackSheet}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl font-bold"
+          style={{ color: Tokens.colors.text.secondary, background: Tokens.colors.background }}
+        >
+          <ChevronLeft size={18} />
+          <span className="text-[12px]">Voltar</span>
+        </button>
 
-  const [linkModalOpen, setLinkModalOpen] = useState(false);
-  const [linkCode, setLinkCode] = useState("");
-  const [linkError, setLinkError] = useState("");
+        <div className="min-w-0 flex-1 text-center">
+          <div className="text-[14px] font-black truncate" style={{ color: Tokens.colors.text.primary }}>
+            {headerContext?.title || ""}
+          </div>
+          <div className="text-[11px] font-medium truncate" style={{ color: Tokens.colors.text.secondary }}>
+            {headerContext?.subtitle || ""}
+          </div>
+        </div>
 
-  const doctorLinkPatientByCode = () => {
-    const code = linkCode.trim().toUpperCase();
-    if (!code) {
-      setLinkError("Digite um código.");
-      return;
-    }
-    const found = patientsData.find((p) => p.code.toUpperCase() === code);
-    if (!found) {
-      setLinkError("Código não encontrado.");
-      return;
-    }
-    // Simula regra: só vincula se o paciente autorizou o doctor (MVP)
-    if (!found.doctorsAuthorized?.includes(doctorProfile.id)) {
-      setLinkError("Paciente ainda não autorizou este médico.");
-      return;
-    }
-    if (doctorProfile.myPatients.includes(found.id)) {
-      setLinkError("Paciente já está vinculado.");
-      return;
-    }
+        <div className="flex items-center gap-2">
+          {userRole === "paciente" && (
+            <button
+              onClick={() => setActiveTab("profileUpdate")}
+              className="p-2 rounded-2xl"
+              style={{ background: Tokens.colors.background, color: Tokens.colors.primary }}
+              aria-label="Atualizar cadastro"
+              title="Atualizar cadastro"
+            >
+              <Edit3 size={18} />
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab("playground")}
+            className="p-2 rounded-2xl"
+            style={{ background: Tokens.colors.background, color: Tokens.colors.text.secondary }}
+            aria-label="Design Kit"
+            title="Design Kit"
+          >
+            <Layout size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
-    setDoctorProfile((prev) => ({ ...prev, myPatients: [...prev.myPatients, found.id] }));
-    setLinkError("");
-    setLinkCode("");
-    setLinkModalOpen(false);
-  };
+  const BackSheet = () => (
+    <Modal
+      open={backSheetOpen}
+      title="Para onde você quer voltar?"
+      subtitle="Trocar perfil, atualizar cadastro ou encerrar sessão."
+      onClose={() => setBackSheetOpen(false)}
+    >
+      <div className="grid grid-cols-1 gap-2">
+        <div
+          className="p-3 rounded-2xl"
+          style={{ background: Tokens.colors.background, border: `1px solid ${Tokens.colors.border}` }}
+        >
+          <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+            Trocar perfil rapidamente
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+            <Button
+              size="sm"
+              variant={userRole === "paciente" ? "primary" : "secondary"}
+              icon={User}
+              onClick={() => {
+                setBackSheetOpen(false);
+                login("paciente");
+              }}
+            >
+              Paciente
+            </Button>
+            <Button
+              size="sm"
+              variant={userRole === "medico" ? "primary" : "secondary"}
+              icon={Stethoscope}
+              onClick={() => {
+                setBackSheetOpen(false);
+                login("medico");
+              }}
+            >
+              Médico
+            </Button>
+            <Button
+              size="sm"
+              variant={userRole === "apoio" ? "primary" : "secondary"}
+              icon={Users}
+              onClick={() => {
+                setBackSheetOpen(false);
+                login("apoio");
+              }}
+            >
+              Apoio
+            </Button>
+          </div>
+        </div>
 
-  const doctorEndLink = (patientId) => {
-    setDoctorProfile((prev) => ({
-      ...prev,
-      myPatients: prev.myPatients.filter((id) => id !== patientId),
-    }));
-    setSelectedPatientId(null);
-  };
+        {userRole === "paciente" && (
+          <Button
+            variant="ghost"
+            icon={RefreshCw}
+            onClick={() => {
+              setBackSheetOpen(false);
+              setActiveTab("profileUpdate");
+            }}
+            className="w-full"
+          >
+            Ir para atualização de cadastro
+          </Button>
+        )}
 
-  // ---------------- Doctor: Create Prescription modal ----------------
+        <Button
+          variant="destructive"
+          icon={LogOut}
+          onClick={() => {
+            setBackSheetOpen(false);
+            logout();
+          }}
+          className="w-full"
+        >
+          Encerrar sessão
+        </Button>
+      </div>
+    </Modal>
+  );
 
-  const [rxModalOpen, setRxModalOpen] = useState(false);
-  const [rxForm, setRxForm] = useState({
-    name: "",
-    dose: "",
-    freq: "1x/dia",
-    time: "",
-    instructions: "",
-    start: "",
-    end: "",
-  });
+  const PatientHome = () => (
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+          Resumo Diário
+        </h1>
+        <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
+          Quarta-feira, 14 de Janeiro
+        </p>
+      </header>
 
-  const createPrescription = () => {
-    if (!selectedPatientId) return;
-    const required = ["name", "dose", "time", "start"];
-    const missing = required.filter((k) => !rxForm[k].trim());
-    if (missing.length) return;
+      {/* 1) AGENDA DE REMÉDIOS EM PRIMEIRO */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+            Agenda de remédios
+          </h2>
+          <Badge variant="info">
+            Aderência mês: {adherence.pct}% ({adherence.taken}/{adherence.expected})
+          </Badge>
+        </div>
 
-    const newRx = {
-      id: genId("rx"),
-      patientId: selectedPatientId,
-      name: rxForm.name.trim(),
-      dose: rxForm.dose.trim(),
-      freq: rxForm.freq.trim(),
-      time: rxForm.time.trim(),
-      instructions: rxForm.instructions.trim(),
-      start: rxForm.start.trim(),
-      end: rxForm.end.trim(),
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {todaySchedule.map((m) => (
+            <Card
+              key={m.id}
+              className="overflow-hidden"
+              title={m.name}
+              subtitle={`${m.dose} • ${m.time}${m.instructions ? ` • ${m.instructions}` : ""}`}
+              footer={
+                <div className="flex items-center justify-between gap-3">
+                  {m.status === "tomado" ? (
+                    <div className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: Tokens.colors.success }}>
+                      <CheckCircle size={18} />
+                      Tomado {m.timeActual ? `às ${m.timeActual}` : ""}
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: Tokens.colors.warning }}>
+                      <Clock size={18} />
+                      Pendente
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    icon={CheckCircle}
+                    disabled={m.status === "tomado"}
+                    onClick={() => confirmMedication(m.id)}
+                  >
+                    Confirmar
+                  </Button>
+                </div>
+              }
+            >
+              <div
+                className="p-4 rounded-2xl"
+                style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.primary }}>
+                    Tratamentos ativos
+                  </div>
+                  <Badge variant={adherence.pct >= 80 ? "success" : adherence.pct >= 50 ? "warning" : "danger"}>
+                    {adherence.pct >= 80 ? "Boa aderência" : adherence.pct >= 50 ? "Atenção" : "Baixa aderência"}
+                  </Badge>
+                </div>
+
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                      Aderência do mês
+                    </span>
+                    <span className="text-[11px] font-black" style={{ color: Tokens.colors.primary }}>
+                      {adherence.pct}%
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: Tokens.colors.border }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, adherence.pct))}%`,
+                        background: Tokens.colors.primary,
+                        boxShadow: "0 10px 18px rgba(0,122,255,0.20)",
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2 text-[11px] font-medium" style={{ color: Tokens.colors.text.secondary }}>
+                    Meta sugerida: 85%+ • Base: {adherence.days} dias no mês (mock)
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* 2) AGENDA DE CONSULTAS MÉDICAS */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+            Agenda de consultas
+          </h2>
+          <Button size="sm" variant="ghost" icon={Calendar} onClick={() => setActiveTab("calendar")}>
+            Ver agenda
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {appointments.slice(0, 2).map((appt) => (
+            <Card
+              key={appt.id}
+              className="overflow-hidden"
+              title={appt.specialty}
+              subtitle={`${appt.doctor} • ${appt.date} • ${appt.time}`}
+              footer={
+                <div className="flex flex-wrap gap-2 justify-between items-center">
+                  <Badge variant={appt.type === "Teleconsulta" ? "indigo" : "info"}>
+                    {appt.type === "Teleconsulta" ? <Video size={14} /> : <MapPin size={14} />}
+                    {appt.type}
+                  </Badge>
+                  <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                    {appt.location}
+                  </div>
+                </div>
+              }
+            >
+              <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-2" style={{ color: Tokens.colors.text.secondary }}>
+                  <Clock size={16} />
+                  <span className="text-[12px] font-bold">{appt.time}</span>
+                </div>
+                <Button size="sm" variant="secondary" icon={Info}>
+                  Detalhes
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* 3) RELATO + DISPOSIÇÃO */}
+      <section className="space-y-3">
+        <h2 className="text-[12px] font-black uppercase tracking-widest px-1" style={{ color: Tokens.colors.text.secondary }}>
+          Relato e disposição
+        </h2>
+
+        <Card
+          title="Como está sua disposição hoje?"
+          subtitle="0 muito indisposto • 10 muito disposto"
+          footer={
+            <div className="flex justify-end">
+              <Button size="sm" icon={CheckCircle}>
+                Salvar
+              </Button>
+            </div>
+          }
+        >
+          <Textarea
+            label="Relato do dia"
+            placeholder="Escreva em linguagem simples como você se sentiu hoje..."
+            value={dailyReport}
+            onChange={(e) => setDailyReport(e.target.value)}
+            rows={4}
+          />
+
+          <div
+            className="p-4 rounded-2xl"
+            style={{ background: Tokens.colors.background, border: `1px solid ${Tokens.colors.border}` }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="inline-flex items-center gap-2">
+                <Thermometer size={18} style={{ color: Tokens.colors.primary }} />
+                <span className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                  Disposição
+                </span>
+              </div>
+              <span className="text-xl font-black" style={{ color: Tokens.colors.primary }}>
+                {disposition}/10
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="10"
+              step="1"
+              value={disposition}
+              onChange={(e) => setDisposition(clampInt(e.target.value, 0, 10))}
+              className="w-full accent-blue-600"
+            />
+
+            <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ color: Tokens.colors.text.tertiary }}>
+              <span>0</span>
+              <span>10</span>
+            </div>
+          </div>
+        </Card>
+      </section>
+    </div>
+  );
+
+  const PatientCalendar = () => (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+          Minha agenda
+        </h1>
+        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
+          Consultas e compromissos médicos.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4">
+        {appointments.map((appt) => (
+          <Card
+            key={appt.id}
+            title={appt.specialty}
+            subtitle={`${appt.date} • ${appt.time}`}
+            footer={
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant={appt.type === "Teleconsulta" ? "indigo" : "info"}>
+                  {appt.type === "Teleconsulta" ? <Video size={14} /> : <MapPin size={14} />}
+                  {appt.type}
+                </Badge>
+                <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                  {appt.location}
+                </div>
+              </div>
+            }
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[13px] font-bold" style={{ color: Tokens.colors.text.primary }}>
+                {appt.doctor}
+              </div>
+              <Button size="sm" variant="secondary" icon={CheckCircle}>
+                Confirmar
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PatientHistory = () => (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+          Histórico
+        </h1>
+        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
+          Linha do tempo organizacional (mock).
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4">
+        {[{ d: "14 Jan 2026", disp: 8, text: "Hoje me senti melhor, sem dor de cabeça." }].map((x, idx) => (
+          <Card
+            key={idx}
+            title={x.d}
+            subtitle={`Disposição: ${x.disp}/10`}
+            footer={
+              <div className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.success }}>
+                <CheckCircle size={16} />
+                Registro salvo
+              </div>
+            }
+          >
+            <div className="text-sm" style={{ color: Tokens.colors.text.secondary }}>
+              “{x.text}”
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PatientProfileUpdate = () => (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+          Atualização de cadastro
+        </h1>
+        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
+          Revise e mantenha seus dados atualizados (mock).
+        </p>
+      </header>
+
+      <Card
+        title="Dados essenciais"
+        subtitle="Informações pessoais e contato"
+        footer={
+          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+            <Button variant="secondary" icon={X} onClick={() => setActiveTab("home")}>
+              Cancelar
+            </Button>
+            <Button icon={CheckCircle} onClick={() => setActiveTab("home")}>
+              Salvar alterações
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Nome completo"
+            placeholder="Ex: Ricardo Souza"
+            value={patientProfile.fullName}
+            onChange={(e) => setPatientProfile((p) => ({ ...p, fullName: e.target.value }))}
+          />
+          <Input
+            label="Telefone"
+            placeholder="(11) 99999-9999"
+            value={patientProfile.phone}
+            onChange={(e) => setPatientProfile((p) => ({ ...p, phone: e.target.value }))}
+          />
+          <Input
+            label="Tipo sanguíneo"
+            placeholder="Ex: O+"
+            value={patientProfile.blood}
+            onChange={(e) => setPatientProfile((p) => ({ ...p, blood: e.target.value }))}
+          />
+          <Input
+            label="Plano de saúde"
+            placeholder="Nome e número"
+            value={patientProfile.healthPlan}
+            onChange={(e) => setPatientProfile((p) => ({ ...p, healthPlan: e.target.value }))}
+          />
+          <div className="md:col-span-2">
+            <Input
+              label="Endereço"
+              placeholder="Rua, número, cidade"
+              value={patientProfile.address}
+              onChange={(e) => setPatientProfile((p) => ({ ...p, address: e.target.value }))}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Input
+              label="Médicos de referência"
+              placeholder="Ex: Dr. X, Dra. Y"
+              value={patientProfile.referenceDoctors}
+              onChange={(e) => setPatientProfile((p) => ({ ...p, referenceDoctors: e.target.value }))}
+            />
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  const DoctorDashboard = () => {
+    const selectedPatient = selectedPatientId ? patients.find((p) => p.id === selectedPatientId) : null;
+    const [newNote, setNewNote] = useState("");
+    const [visibleToPatient, setVisibleToPatient] = useState(true);
+    const [visibleToSupport, setVisibleToSupport] = useState(false);
+
+    const saveNote = () => {
+      if (!selectedPatient) return;
+      const trimmed = newNote.trim();
+      if (!trimmed) return;
+
+      const note = {
+        id: `n${Math.random().toString(16).slice(2)}`,
+        patientId: selectedPatient.id,
+        date: "2026-01-14",
+        text: trimmed,
+        visibleToPatient,
+        visibleToSupport,
+      };
+      setMedicalNotes((prev) => [note, ...prev]);
+      setNewNote("");
+      setVisibleToPatient(true);
+      setVisibleToSupport(false);
     };
 
-    setPrescriptions((prev) => [newRx, ...prev]);
-    setRxForm({ name: "", dose: "", freq: "1x/dia", time: "", instructions: "", start: "", end: "" });
-    setRxModalOpen(false);
-  };
+    if (!selectedPatient) {
+      return (
+        <div className="space-y-6">
+          <header className="space-y-2">
+            <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+              Seus pacientes
+            </h1>
+            <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
+              Gerencie sua lista de acompanhamento.
+            </p>
+          </header>
 
-  // ---------------- Doctor: Create Appointment modal ----------------
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card title="Pacientes ativos" subtitle="Mock">
+              <div className="flex items-center gap-3">
+                <Users size={28} style={{ color: Tokens.colors.primary }} />
+                <div className="text-3xl font-black">{doctorProfile.myPatients.length}</div>
+              </div>
+            </Card>
+            <Card title="Consultas hoje" subtitle="Mock">
+              <div className="flex items-center gap-3">
+                <Calendar size={28} style={{ color: Tokens.colors.indigo }} />
+                <div className="text-3xl font-black">2</div>
+              </div>
+            </Card>
+            <Card title="Alertas" subtitle="Mock">
+              <div className="flex items-center gap-3">
+                <AlertTriangle size={28} style={{ color: Tokens.colors.warning }} />
+                <div className="text-3xl font-black">1</div>
+              </div>
+            </Card>
+          </div>
 
-  const [apptModalOpen, setApptModalOpen] = useState(false);
-  const [apptForm, setApptForm] = useState({
-    specialty: "",
-    doctor: "",
-    date: "",
-    time: "",
-    type: "Presencial",
-    location: "",
-    goal: "",
-  });
-
-  const createAppointment = () => {
-    if (!selectedPatientId) return;
-
-    const required = ["specialty", "doctor", "date", "time", "type", "location"];
-    const missing = required.filter((k) => !String(apptForm[k]).trim());
-    if (missing.length) return;
-
-    const newA = {
-      id: genId("a"),
-      patientId: selectedPatientId,
-      specialty: apptForm.specialty.trim(),
-      doctor: apptForm.doctor.trim(),
-      date: apptForm.date.trim(),
-      time: apptForm.time.trim(),
-      type: apptForm.type,
-      location: apptForm.location.trim(),
-      goal: apptForm.goal.trim(),
-    };
-
-    setAppointments((prev) => [newA, ...prev]);
-    setApptForm({
-      specialty: "",
-      doctor: "",
-      date: "",
-      time: "",
-      type: "Presencial",
-      location: "",
-      goal: "",
-    });
-    setApptModalOpen(false);
-  };
-
-  // ---------------- Doctor: Create Note modal ----------------
-
-  const [noteText, setNoteText] = useState("");
-  const [noteVisibleToPatient, setNoteVisibleToPatient] = useState(true);
-  const [noteVisibleToSupport, setNoteVisibleToSupport] = useState(false);
-
-  const createNote = () => {
-    if (!selectedPatientId) return;
-    const txt = noteText.trim();
-    if (!txt) return;
-
-    const now = new Date();
-    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-
-    const newN = {
-      id: genId("n"),
-      patientId: selectedPatientId,
-      text: txt,
-      visibleToPatient: noteVisibleToPatient,
-      visibleToSupport: noteVisibleToSupport,
-      date: iso,
-    };
-
-    setMedicalNotes((prev) => [newN, ...prev]);
-    setNoteText("");
-    setNoteVisibleToPatient(true);
-    setNoteVisibleToSupport(false);
-  };
-
-  // ---------------- Patient: Save daily report ----------------
-
-  const [patientDailyText, setPatientDailyText] = useState("");
-
-  const savePatientDailyReport = () => {
-    // MVP: escreve no patient p1
-    const patientId = "p1";
-    const now = new Date();
-    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-
-    setPatientsData((prev) =>
-      prev.map((p) => {
-        if (p.id !== patientId) return p;
-        const history = Array.isArray(p.dispositionHistory) ? p.dispositionHistory : [];
-        return {
-          ...p,
-          dispositionHistory: [
-            { date: iso, value: disposition, text: patientDailyText.trim() || "Sem relato." },
-            ...history,
-          ],
-        };
-      })
-    );
-
-    setPatientDailyText("");
-  };
-
-  // ---------------- Components: Doctor patient detail ----------------
-
-  const PatientDetailView = ({ patient }) => {
-    const [subTab, setSubTab] = useState("resumo"); // resumo | tratamentos | consultas | historico | notas
-
-    const patientRx = prescriptions.filter((r) => r.patientId === patient.id);
-    const patientAppts = appointments.filter((a) => a.patientId === patient.id);
-    const patientNotes = medicalNotes.filter((n) => n.patientId === patient.id);
+          <Card
+            title="Meus pacientes vinculados"
+            subtitle="Toque para abrir"
+            footer={
+              <Button variant="ghost" icon={Search} className="w-full">
+                Vincular novo paciente (mock)
+              </Button>
+            }
+          >
+            <div className="space-y-3">
+              {patients
+                .filter((p) => doctorProfile.myPatients.includes(p.id))
+                .map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPatientId(p.id)}
+                    className="w-full text-left p-4 rounded-2xl transition-all"
+                    style={{
+                      background: Tokens.colors.surface2,
+                      border: `1px solid ${Tokens.colors.border}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                          style={{ background: "#EBF5FF", color: Tokens.colors.primary }}
+                        >
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <div className="text-[15px] font-black" style={{ color: Tokens.colors.text.primary }}>
+                            {p.name}
+                          </div>
+                          <div className="text-[11px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                            {p.code} • {p.phone}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} style={{ color: Tokens.colors.text.tertiary }} />
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </Card>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
-        {/* TOP ACTIONS */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedPatientId(null)}
-              className="flex items-center text-sm font-bold text-slate-400 hover:text-emerald-600"
-            >
-              <ChevronLeft size={18} /> Voltar aos Pacientes
-            </button>
-
-            {/* ✅ Botão Home pedido */}
-            <button
-              onClick={goHome}
-              className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-black uppercase tracking-wider hover:bg-emerald-100"
-              title="Voltar ao Home (Pacientes)"
-            >
-              <Home size={16} /> Home
-            </button>
-          </div>
-
-          <button
-            onClick={() => doctorEndLink(patient.id)}
-            className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold border border-rose-100 hover:bg-rose-100 transition-colors"
-          >
-            Encerrar Vínculo
-          </button>
-        </div>
-
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-700 font-black text-xl">
-              {initials(patient.name)}
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">{patient.name}</h2>
-              <div className="flex flex-wrap gap-2 mt-1">
-                <Badge variant="success">Vinculado</Badge>
-                <Badge variant="default">Cód: {patient.code}</Badge>
-                <Badge variant="info">Nasc: {patient.birth}</Badge>
-              </div>
-            </div>
-          </div>
-
+        <header className="space-y-2">
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+            {selectedPatient.name}
+          </h1>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setRxModalOpen(true)}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-emerald-100"
-            >
-              + Prescrição
-            </button>
-            <button
-              onClick={() => setApptModalOpen(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-indigo-100"
-            >
-              + Consulta
-            </button>
+            <Badge variant="info">{selectedPatient.code}</Badge>
+            <Badge>{selectedPatient.birth}</Badge>
           </div>
-        </div>
-
-        {/* SUBTABS */}
-        <div className="flex space-x-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto no-scrollbar">
-          {[
-            { id: "resumo", label: "Resumo" },
-            { id: "tratamentos", label: "Tratamentos" },
-            { id: "consultas", label: "Consultas" },
-            { id: "historico", label: "Histórico" },
-            { id: "notas", label: "Notas" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex-shrink-0 ${
-                subTab === t.id ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:bg-slate-200"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* SUMMARY */}
-        {subTab === "resumo" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center">
-                <User size={18} className="mr-2 text-emerald-600" /> Dados Cadastrais
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between border-b border-slate-50 pb-1">
-                  <span className="text-slate-400">Tipo Sanguíneo</span>
-                  <span className="font-bold text-slate-700">{patient.blood}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-50 pb-1">
-                  <span className="text-slate-400">Telefone</span>
-                  <span className="font-bold text-slate-700">{patient.phone}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-50 pb-1">
-                  <span className="text-slate-400">Peso/Altura</span>
-                  <span className="font-bold text-slate-700">
-                    {patient.routine.weight} / {patient.routine.height}
-                  </span>
-                </div>
-                <div className="flex justify-between border-b border-slate-50 pb-1">
-                  <span className="text-slate-400">Profissão</span>
-                  <span className="font-bold text-slate-700">{patient.routine.profession}</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center">
-                <Shield size={18} className="mr-2 text-indigo-600" /> Condições (Auto-declarado)
-              </h3>
-              <div className="p-3 bg-slate-50 rounded-xl text-sm text-slate-600">
-                {patient.health.conditions || "Nenhuma informada"}
-              </div>
-
-              <div className="mt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">
-                  Uso contínuo (informado)
-                </p>
-                <div className="p-3 bg-slate-50 rounded-xl text-sm text-slate-600">
-                  {patient.health.medications || "Nenhum informado"}
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* TREATMENTS */}
-        {subTab === "tratamentos" && (
-          <div className="space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-slate-800">Plano Terapêutico</h3>
-                <p className="text-xs text-slate-400">
-                  Organização de medicações (sem interpretação automática do app).
-                </p>
-              </div>
-              <button
-                onClick={() => setRxModalOpen(true)}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-emerald-100"
-              >
-                + Nova Prescrição
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {patientRx.length === 0 && (
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-500 font-medium">Sem prescrições registradas ainda.</p>
-                </Card>
-              )}
-
-              {patientRx.map((p) => (
-                <Card key={p.id} className="border-l-4 border-l-emerald-500">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h4 className="font-bold text-slate-800">
-                        {p.name} {p.dose}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {p.freq} • Horário: <span className="font-black">{p.time}</span>
-                      </p>
-                      {!!p.instructions && (
-                        <p className="text-[10px] bg-slate-50 p-1.5 rounded mt-2 text-slate-500 italic">
-                          “{p.instructions}”
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <Badge variant="default">Início: {p.start ? formatDateBR(p.start) : "-"}</Badge>
-                        <Badge variant="info">Fim: {p.end ? formatDateBR(p.end) : "—"}</Badge>
-                      </div>
-                    </div>
-                    <button className="p-2 text-slate-300 hover:text-emerald-600" title="Configurações (MVP)">
-                      <Settings size={18} />
-                    </button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* APPOINTMENTS */}
-        {subTab === "consultas" && (
-          <div className="space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-slate-800">Consultas / Retornos</h3>
-                <p className="text-xs text-slate-400">Cadastro de consulta para aparecer na agenda do paciente.</p>
-              </div>
-              <button
-                onClick={() => setApptModalOpen(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-indigo-100"
-              >
-                + Agendar
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {patientAppts.length === 0 && (
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-500 font-medium">Sem consultas registradas ainda.</p>
-                </Card>
-              )}
-
-              {patientAppts.map((appt) => (
-                <Card key={appt.id} className="border-l-4 border-l-indigo-500">
-                  <div className="flex flex-col sm:flex-row justify-between gap-4">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-indigo-50 p-3 rounded-2xl text-center min-w-[70px]">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase leading-none">
-                          {String(appt.date).split("-")[1] || "MM"}
-                        </p>
-                        <p className="text-xl font-black text-indigo-600 leading-none mt-1">
-                          {String(appt.date).split("-")[2] || "DD"}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Badge variant="indigo">
-                          {appt.type === "Teleconsulta" ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Video size={10} /> Teleconsulta
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin size={10} /> Presencial
-                            </span>
-                          )}
-                        </Badge>
-
-                        <h4 className="font-bold text-slate-800">{appt.specialty}</h4>
-                        <p className="text-sm font-medium text-slate-600">{appt.doctor}</p>
-
-                        <div className="flex flex-wrap items-center text-[11px] text-slate-400 mt-2 gap-x-3 gap-y-1">
-                          <span className="inline-flex items-center gap-1">
-                            <Clock size={12} /> {appt.time}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin size={12} /> {appt.location}
-                          </span>
-                        </div>
-
-                        {!!appt.goal && (
-                          <p className="text-[11px] text-slate-500 mt-2">
-                            <span className="font-black">Objetivo:</span> {appt.goal}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center sm:flex-col sm:justify-center gap-2">
-                      <button className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-100">
-                        Detalhes
-                      </button>
-                      <button className="flex-1 sm:flex-none px-4 py-2 border border-indigo-100 text-indigo-600 rounded-lg text-[10px] font-bold hover:bg-indigo-50">
-                        Confirmar
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* HISTORY (Read-only) */}
-        {subTab === "historico" && (
-          <div className="space-y-4">
-            <h3 className="font-bold text-slate-800">Relatos do Paciente (Read-only)</h3>
-
-            <div className="space-y-3">
-              {(patient.dispositionHistory || []).map((h, idx) => (
-                <Card key={`${h.date}_${idx}`} className="bg-slate-50/50">
-                  <div className="flex justify-between items-center mb-2 gap-3">
-                    <Badge variant="indigo">{formatDateBR(h.date)}</Badge>
-                    <span className="text-xs font-black text-indigo-600">Disposição: {h.value}/10</span>
-                  </div>
-                  <p className="text-sm text-slate-600 italic">“{h.text}”</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* NOTES */}
-        {subTab === "notas" && (
-          <div className="space-y-4">
-            <Card>
-              <h3 className="font-bold text-slate-800 mb-1">Novo Registro do Médico</h3>
-              <p className="text-[11px] text-slate-400 mb-4">
-                Apenas registro (sem IA, sem sugestões automáticas).
-              </p>
-
-              <textarea
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border-0 text-sm h-32 mb-4 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Anote observações..."
-              />
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={noteVisibleToPatient}
-                      onChange={(e) => setNoteVisibleToPatient(e.target.checked)}
-                      className="rounded text-emerald-600"
-                    />
-                    <span className="text-[11px] font-bold text-slate-500">Visível ao Paciente</span>
-                  </label>
-
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={noteVisibleToSupport}
-                      onChange={(e) => setNoteVisibleToSupport(e.target.checked)}
-                      className="rounded text-emerald-600"
-                    />
-                    <span className="text-[11px] font-bold text-slate-500">Visível à Rede</span>
-                  </label>
-                </div>
-
-                <button
-                  onClick={createNote}
-                  className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider"
-                >
-                  Salvar Nota
-                </button>
-              </div>
-            </Card>
-
-            <div className="space-y-3">
-              {patientNotes.length === 0 && (
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-500 font-medium">Sem notas registradas.</p>
-                </Card>
-              )}
-
-              {patientNotes.map((n) => (
-                <Card key={n.id} className="border-l-4 border-l-slate-200">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <Badge variant="default">{formatDateBR(n.date)}</Badge>
-                        {n.visibleToPatient ? <Badge variant="success">Visível ao paciente</Badge> : <Badge variant="warning">Privado</Badge>}
-                        {n.visibleToSupport ? <Badge variant="info">Visível à rede</Badge> : <Badge variant="default">Rede: não</Badge>}
-                      </div>
-                      <p className="text-sm text-slate-700">{n.text}</p>
-                    </div>
-                    <button className="p-2 text-slate-300 hover:text-slate-600" title="Configurações (MVP)">
-                      <Settings size={18} />
-                    </button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------- Doctor dashboard ----------------
-
-  const renderDoctorDashboard = () => {
-    const myPatients = patientsData.filter((p) => doctorProfile.myPatients.includes(p.id));
-
-    if (selectedPatientId) {
-      const p = patientsData.find((x) => x.id === selectedPatientId);
-      if (!p) return null;
-      return <PatientDetailView patient={p} />;
-    }
-
-    return (
-      <div className="space-y-8">
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">Painel do Médico</h2>
-            <p className="text-slate-500 text-sm">
-              {doctorProfile.name} • CRM {doctorProfile.crm} • {doctorProfile.specialty}
-            </p>
-          </div>
-
-          <button
-            onClick={() => setLinkModalOpen(true)}
-            className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-emerald-100 flex items-center justify-center"
-          >
-            <Search size={18} className="mr-2" /> Vincular Paciente
-          </button>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-emerald-600 text-white border-0">
-            <Users className="mb-4 opacity-60" size={32} />
-            <p className="text-3xl font-black">{myPatients.length}</p>
-            <p className="text-xs font-bold uppercase tracking-wider opacity-80">Pacientes Vinculados</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card title="Cadastro do paciente" subtitle="Dados vitais e contato">
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span style={{ color: Tokens.colors.text.secondary }}>Tipo sanguíneo</span>
+                <span className="font-bold" style={{ color: Tokens.colors.text.primary }}>
+                  {selectedPatient.blood}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{ color: Tokens.colors.text.secondary }}>Telefone</span>
+                <span className="font-bold" style={{ color: Tokens.colors.text.primary }}>
+                  {selectedPatient.phone}
+                </span>
+              </div>
+            </div>
           </Card>
 
-          <Card>
-            <Calendar className="mb-4 text-indigo-600" size={32} />
-            <p className="text-3xl font-black text-slate-800">
-              {appointments.filter((a) => doctorProfile.myPatients.includes(a.patientId)).length}
-            </p>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Consultas Registradas</p>
-          </Card>
-
-          <Card>
-            <Activity className="mb-4 text-blue-600" size={32} />
-            <p className="text-3xl font-black text-slate-800">
-              {patientsData.reduce((acc, p) => acc + (p.dispositionHistory?.length || 0), 0)}
-            </p>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Registros de Relato</p>
-          </Card>
-        </section>
-
-        <section>
-          <h3 className="font-bold text-slate-800 mb-4 flex items-center">
-            <ClipboardList size={20} className="mr-2 text-emerald-600" /> Meus Pacientes
-          </h3>
-
-          <div className="grid grid-cols-1 gap-4">
-            {myPatients.map((patient) => (
-              <button
-                key={patient.id}
-                onClick={() => setSelectedPatientId(patient.id)}
-                className="text-left bg-white border border-slate-100 p-4 rounded-2xl flex items-center justify-between hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
-                    <User className="text-slate-400 group-hover:text-emerald-700" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800">{patient.name}</h4>
-                    <p className="text-[10px] text-slate-400 font-black uppercase">
-                      {patient.code} • {patient.routine.profession}
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600" />
-              </button>
-            ))}
-
-            {myPatients.length === 0 && (
-              <Card className="bg-slate-50/60 border-dashed">
-                <p className="text-sm text-slate-500 font-medium">
-                  Você ainda não tem pacientes vinculados. Use “Vincular Paciente”.
-                </p>
-              </Card>
-            )}
-          </div>
-        </section>
-
-        {/* Link Patient Modal */}
-        <Modal
-          open={linkModalOpen}
-          title="Vincular paciente por código"
-          onClose={() => {
-            setLinkModalOpen(false);
-            setLinkError("");
-            setLinkCode("");
-          }}
-        >
-          <div className="space-y-4">
-            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <p className="text-[11px] text-slate-600 font-medium">
-                O paciente fornece um código (ex: <span className="font-black">VF-123</span>). O vínculo só ocorre
-                se o paciente tiver autorizado este médico (MVP).
-              </p>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">
-                Código do paciente
-              </label>
-              <input
-                value={linkCode}
-                onChange={(e) => setLinkCode(e.target.value)}
-                placeholder="VF-123"
-                className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none font-bold tracking-wider"
-              />
-            </div>
-
-            {linkError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-bold">
-                {linkError}
+          <Card
+            title="Nova nota clínica"
+            subtitle="Responsabilidade do profissional"
+            footer={
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                <Button variant="secondary" icon={X} onClick={() => setNewNote("")}>
+                  Limpar
+                </Button>
+                <Button icon={CheckCircle} onClick={saveNote}>
+                  Salvar nota
+                </Button>
               </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setLinkModalOpen(false);
-                  setLinkError("");
-                  setLinkCode("");
-                }}
-                className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={doctorLinkPatientByCode}
-                className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-100"
-              >
-                Vincular
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* Prescription Modal */}
-        <Modal open={rxModalOpen} title="Nova prescrição" onClose={() => setRxModalOpen(false)}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Medicamento</label>
-                <input
-                  value={rxForm.name}
-                  onChange={(e) => setRxForm((p) => ({ ...p, name: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  placeholder="Ex: Losartana"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Dose</label>
-                <input
-                  value={rxForm.dose}
-                  onChange={(e) => setRxForm((p) => ({ ...p, dose: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  placeholder="Ex: 50mg"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Frequência</label>
-                <input
-                  value={rxForm.freq}
-                  onChange={(e) => setRxForm((p) => ({ ...p, freq: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  placeholder="Ex: 1x/dia"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Horário</label>
-                <input
-                  value={rxForm.time}
-                  onChange={(e) => setRxForm((p) => ({ ...p, time: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  placeholder="Ex: 08:00"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Instruções</label>
-                <input
-                  value={rxForm.instructions}
-                  onChange={(e) => setRxForm((p) => ({ ...p, instructions: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  placeholder="Ex: Tomar em jejum"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Início</label>
-                <input
-                  type="date"
-                  value={rxForm.start}
-                  onChange={(e) => setRxForm((p) => ({ ...p, start: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Fim (opcional)</label>
-                <input
-                  type="date"
-                  value={rxForm.end}
-                  onChange={(e) => setRxForm((p) => ({ ...p, end: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-emerald-100 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setRxModalOpen(false)}
-                className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createPrescription}
-                className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-100"
-              >
-                Salvar
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400">
-              MVP: salva localmente (mock). Integração com banco/conta fica para fase 2.
-            </p>
-          </div>
-        </Modal>
-
-        {/* Appointment Modal */}
-        <Modal open={apptModalOpen} title="Agendar consulta" onClose={() => setApptModalOpen(false)}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Especialidade</label>
-                <input
-                  value={apptForm.specialty}
-                  onChange={(e) => setApptForm((p) => ({ ...p, specialty: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  placeholder="Ex: Cardiologia"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Médico</label>
-                <input
-                  value={apptForm.doctor}
-                  onChange={(e) => setApptForm((p) => ({ ...p, doctor: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  placeholder="Ex: Dr. Alberto Rossi"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Data</label>
-                <input
-                  type="date"
-                  value={apptForm.date}
-                  onChange={(e) => setApptForm((p) => ({ ...p, date: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Horário</label>
-                <input
-                  value={apptForm.time}
-                  onChange={(e) => setApptForm((p) => ({ ...p, time: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  placeholder="Ex: 14:30"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Tipo</label>
-                <select
-                  value={apptForm.type}
-                  onChange={(e) => setApptForm((p) => ({ ...p, type: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                >
-                  <option>Presencial</option>
-                  <option>Teleconsulta</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Local/Link</label>
-                <input
-                  value={apptForm.location}
-                  onChange={(e) => setApptForm((p) => ({ ...p, location: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  placeholder="Ex: Clínica X ou Link"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Objetivo (opcional)</label>
-                <input
-                  value={apptForm.goal}
-                  onChange={(e) => setApptForm((p) => ({ ...p, goal: e.target.value }))}
-                  className="mt-1 w-full p-3 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  placeholder="Ex: Acompanhamento"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setApptModalOpen(false)}
-                className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createAppointment}
-                className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-100"
-              >
-                Salvar
-              </button>
-            </div>
-          </div>
-        </Modal>
-      </div>
-    );
-  };
-
-  // ---------------- Patient dashboard ----------------
-
-  const renderPatientDashboard = () => {
-    const patientId = "p1";
-    const patient = patientsData.find((p) => p.id === patientId);
-
-    const rx = prescriptions.filter((r) => r.patientId === patientId);
-    const appts = appointments.filter((a) => a.patientId === patientId);
-    const notesVisible = medicalNotes.filter((n) => n.patientId === patientId && n.visibleToPatient);
-
-    return (
-      <div className="space-y-6 md:space-y-8">
-        {/* HOME */}
-        {activeTab === "home" && (
-          <>
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">Olá, {patient?.name?.split(" ")?.[0] || "Paciente"}</h2>
-                <p className="text-slate-500 text-sm italic">Como você está hoje?</p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveTab("appointments")}
-                  className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center text-slate-600 shadow-sm"
-                >
-                  <Calendar size={14} className="mr-2" /> Agenda
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("access")}
-                  className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center text-slate-600 shadow-sm"
-                >
-                  <Shield size={14} className="mr-2" /> Meus Médicos
-                </button>
-              </div>
-            </header>
-
-            <Card>
-              <h3 className="font-bold text-slate-800 flex items-center mb-4 text-sm md:text-base">
-                <Smile size={18} className="mr-2 text-blue-500" /> Relato Diário
-              </h3>
-
-              <textarea
-                value={patientDailyText}
-                onChange={(e) => setPatientDailyText(e.target.value)}
-                className="w-full p-4 bg-slate-50 rounded-xl border-0 text-sm min-h-[110px] resize-none focus:ring-2 focus:ring-blue-100 mb-4"
-                placeholder="Escreva em linguagem simples como você se sente hoje. (O app não dá diagnóstico.)"
-              />
-
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="flex justify-between items-center mb-4">
-                  <label className="text-xs font-black text-slate-700 uppercase flex items-center">
-                    <Thermometer size={14} className="mr-1 text-blue-600" /> Como está sua disposição hoje?
-                  </label>
-                  <span className="text-xl font-black text-blue-600">{disposition}/10</span>
-                </div>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  value={disposition}
-                  onChange={(e) => setDisposition(parseInt(e.target.value, 10))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                />
-
-                <div className="flex justify-between mt-2 px-1">
-                  <span className="text-[9px] font-bold text-slate-400">0 muito indisposto</span>
-                  <span className="text-[9px] font-bold text-slate-400">10 muito disposto</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={savePatientDailyReport}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md shadow-blue-100"
-                >
-                  Salvar Relato
-                </button>
-              </div>
-            </Card>
-
-            <section>
-              <h3 className="font-bold text-slate-800 mb-4">Tratamentos registrados pelo médico</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {rx.map((p) => (
-                  <Card key={p.id} className="border-l-4 border-l-blue-500">
-                    <div className="flex justify-between items-start gap-3">
-                      <div>
-                        <h4 className="font-bold text-slate-800">
-                          {p.name} {p.dose}
-                        </h4>
-                        <p className="text-[11px] text-slate-400 font-black uppercase">{p.time} • {p.freq}</p>
-                        {!!p.instructions && (
-                          <p className="text-[11px] text-slate-500 mt-2 italic">“{p.instructions}”</p>
-                        )}
-                      </div>
-
-                      <button
-                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100"
-                        title="MVP: check-in do paciente (ainda sem persistência)"
-                      >
-                        <Plus size={20} />
-                      </button>
-                    </div>
-                  </Card>
-                ))}
-
-                {rx.length === 0 && (
-                  <Card className="bg-slate-50/60 border-dashed">
-                    <p className="text-sm text-slate-500 font-medium">Sem tratamentos cadastrados por médico.</p>
-                  </Card>
-                )}
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="font-bold text-slate-800">Notas do médico (visíveis para você)</h3>
-
-              {notesVisible.length === 0 && (
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-500 font-medium">Sem notas visíveis no momento.</p>
-                </Card>
-              )}
-
-              {notesVisible.map((n) => (
-                <Card key={n.id} className="border-l-4 border-l-slate-200">
-                  <div className="flex justify-between items-start gap-3">
-                    <div>
-                      <div className="flex gap-2 mb-2">
-                        <Badge variant="default">{formatDateBR(n.date)}</Badge>
-                        <Badge variant="success">Médico</Badge>
-                      </div>
-                      <p className="text-sm text-slate-700">{n.text}</p>
-                    </div>
-                    <Stethoscope className="text-slate-300" />
-                  </div>
-                </Card>
-              ))}
-            </section>
-          </>
-        )}
-
-        {/* APPOINTMENTS */}
-        {activeTab === "appointments" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">Minha Agenda</h2>
-                <p className="text-sm text-slate-500">Consultas cadastradas pelo médico (ou por você futuramente).</p>
-              </div>
-
-              {/* ✅ Botão Home pedido (também para paciente) */}
-              <button
-                onClick={() => setActiveTab("home")}
-                className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-black uppercase tracking-wider inline-flex items-center gap-2"
-              >
-                <Home size={16} /> Home
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {appts.map((appt) => (
-                <Card key={appt.id} className="border-l-4 border-l-indigo-500">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-indigo-50 p-3 rounded-2xl text-center min-w-[70px]">
-                      <p className="text-[10px] font-black text-indigo-400 uppercase leading-none">
-                        {String(appt.date).split("-")[1]}
-                      </p>
-                      <p className="text-xl font-black text-indigo-600 leading-none mt-1">
-                        {String(appt.date).split("-")[2]}
-                      </p>
-                    </div>
-
-                    <div className="flex-1">
-                      <Badge variant="indigo">
-                        {appt.type === "Teleconsulta" ? (
-                          <span className="inline-flex items-center gap-1">
-                            <Video size={10} /> Teleconsulta
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin size={10} /> Presencial
-                          </span>
-                        )}
-                      </Badge>
-
-                      <h4 className="font-bold text-slate-800 mt-1">{appt.specialty}</h4>
-                      <p className="text-xs text-slate-500">{appt.doctor}</p>
-
-                      <div className="flex flex-wrap items-center text-[11px] text-slate-400 mt-2 gap-x-3 gap-y-1">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock size={12} /> {appt.time}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin size={12} /> {appt.location}
-                        </span>
-                      </div>
-
-                      {!!appt.goal && (
-                        <p className="text-[11px] text-slate-500 mt-2">
-                          <span className="font-black">Objetivo:</span> {appt.goal}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              {appts.length === 0 && (
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-500 font-medium">Sem consultas na agenda.</p>
-                </Card>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ACCESS */}
-        {activeTab === "access" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">Meus Médicos e Acessos</h2>
-                <p className="text-sm text-slate-500">Controle quem pode ver seus dados.</p>
-              </div>
-
-              {/* ✅ Botão Home pedido */}
-              <button
-                onClick={() => setActiveTab("home")}
-                className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-black uppercase tracking-wider inline-flex items-center gap-2"
-              >
-                <Home size={16} /> Home
-              </button>
-            </div>
-
-            <Card className="bg-blue-600 text-white border-0">
-              <div className="flex justify-between items-center gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Seu código de vinculação</p>
-                  <p className="text-3xl font-black mt-1">{patient?.code || "VF-000"}</p>
-                </div>
-
-                <button className="bg-white/15 p-3 rounded-2xl hover:bg-white/25 transition-all" title="MVP: copiar">
-                  <ClipboardList size={24} />
-                </button>
-              </div>
-
-              <p className="text-[10px] mt-4 opacity-80 italic">
-                Forneça este código ao seu médico para ele solicitar o vínculo.
-              </p>
-            </Card>
-
-            <section className="space-y-4">
-              <h3 className="font-bold text-slate-800">Médicos autorizados</h3>
-
-              {doctorProfile && (
-                <Card className="flex items-center justify-between gap-3">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-700">
-                      <Stethoscope size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800">{doctorProfile.name}</h4>
-                      <p className="text-xs text-slate-400">
-                        {doctorProfile.specialty} • CRM {doctorProfile.crm}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button className="text-rose-500 font-black text-xs hover:underline">
-                    Revogar (MVP)
-                  </button>
-                </Card>
-              )}
-            </section>
-
-            <Card className="bg-slate-50/60 border-dashed">
-              <p className="text-sm text-slate-500 font-medium">
-                MVP: vínculo/consentimento está simulado. Na fase 2, isso vira fluxo real com aceite do paciente.
-              </p>
-            </Card>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ---------------- Layout: Login ----------------
-
-  const roleButtons = [
-    { role: "paciente", label: "Sou Paciente", sub: "Minha rotina e saúde", icon: User, tone: "blue" },
-    { role: "medico", label: "Sou Médico", sub: "Painel clínico e CRM", icon: Stethoscope, tone: "emerald" },
-    { role: "apoio", label: "Sou Rede de Apoio", sub: "Acompanhar familiar", icon: Users, tone: "purple" },
-  ];
-
-  const toneStyles = {
-    blue: {
-      borderHover: "hover:border-blue-500",
-      iconBox: "bg-blue-50 text-blue-600",
-      iconBoxHover: "group-hover:bg-blue-600 group-hover:text-white",
-    },
-    emerald: {
-      borderHover: "hover:border-emerald-500",
-      iconBox: "bg-emerald-50 text-emerald-600",
-      iconBoxHover: "group-hover:bg-emerald-600 group-hover:text-white",
-    },
-    purple: {
-      borderHover: "hover:border-purple-500",
-      iconBox: "bg-purple-50 text-purple-600",
-      iconBoxHover: "group-hover:bg-purple-600 group-hover:text-white",
-    },
-  };
-
-  // ---------------- Layout: Dashboard wrapper ----------------
-
-  const DesktopSidebar = () => {
-    const isDoctor = userRole === "medico";
-    const isPatient = userRole === "paciente";
-
-    return (
-      <aside className="w-64 bg-white border-r border-slate-100 p-6 hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="flex items-center space-x-3 mb-10">
-          <div className={`p-2 rounded-xl ${isDoctor ? "bg-emerald-600" : "bg-blue-600"}`}>
-            <Heart className="text-white" size={20} fill="currentColor" />
-          </div>
-          <h1 className="text-lg font-black text-slate-800 tracking-tight italic">VitaFlow</h1>
-        </div>
-
-        <nav className="flex-1 space-y-1">
-          {isPatient && (
-            <>
-              <button
-                onClick={() => setActiveTab("home")}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${
-                  activeTab === "home" ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                <Activity size={20} /> <span className="text-sm">Painel</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("appointments")}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${
-                  activeTab === "appointments" ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                <Calendar size={20} /> <span className="text-sm">Minha Agenda</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("access")}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${
-                  activeTab === "access" ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                <Shield size={20} /> <span className="text-sm">Meus Médicos</span>
-              </button>
-            </>
-          )}
-
-          {isDoctor && (
-            <>
-              <button
-                onClick={() => {
-                  setActiveTab("home");
-                  setSelectedPatientId(null);
-                }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${
-                  activeTab === "home" ? "bg-emerald-600 text-white" : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                <Users size={20} /> <span className="text-sm">Pacientes</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab("home");
-                  setSelectedPatientId(null);
-                  setLinkModalOpen(true);
-                }}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all text-slate-500 hover:bg-slate-50"
-              >
-                <LinkIcon size={20} /> <span className="text-sm">Vincular</span>
-              </button>
-
-              {/* ✅ Home rápido */}
-              <button
-                onClick={goHome}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all text-slate-500 hover:bg-slate-50"
-              >
-                <Home size={20} /> <span className="text-sm">Home</span>
-              </button>
-            </>
-          )}
-
-          {!isPatient && !isDoctor && (
-            <Card className="bg-slate-50/60 border-dashed">
-              <p className="text-sm text-slate-500 font-medium">
-                MVP: perfil “Rede de Apoio” ainda está como placeholder.
-              </p>
-            </Card>
-          )}
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-slate-50">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black text-rose-500 hover:bg-rose-50 transition-all"
+            }
           >
-            <ChevronLeft size={20} /> <span className="text-sm">Sair</span>
-          </button>
-        </div>
-      </aside>
-    );
-  };
-
-  const MobileNav = () => {
-    const isPatient = userRole === "paciente";
-    const isDoctor = userRole === "medico";
-
-    const items = isPatient
-      ? [
-          { id: "home", icon: Activity, onClick: () => setActiveTab("home") },
-          { id: "appointments", icon: Calendar, onClick: () => setActiveTab("appointments") },
-          { id: "access", icon: Shield, onClick: () => setActiveTab("access") },
-        ]
-      : isDoctor
-      ? [
-          { id: "home", icon: Users, onClick: () => goHome() },
-          { id: "link", icon: LinkIcon, onClick: () => setLinkModalOpen(true) },
-          { id: "home_btn", icon: Home, onClick: () => goHome() },
-        ]
-      : [{ id: "home", icon: Home, onClick: () => setActiveTab("home") }];
-
-    return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 z-50 px-4 py-3 flex justify-around items-center">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active =
-            item.id === activeTab ||
-            (isDoctor && item.id === "home" && activeTab === "home" && !selectedPatientId);
-
-          return (
-            <button
-              key={item.id}
-              onClick={item.onClick}
-              className={`p-3 rounded-2xl transition-all ${
-                active ? (isDoctor ? "bg-emerald-600 text-white" : "bg-blue-600 text-white") : "text-slate-400"
-              }`}
-              title={item.id}
-            >
-              <Icon size={22} />
-            </button>
-          );
-        })}
-
-        <button onClick={handleLogout} className="p-3 rounded-2xl text-rose-400" title="Sair">
-          <ChevronLeft size={22} />
-        </button>
-      </nav>
-    );
-  };
-
-  // ---------------- Render ----------------
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900 overflow-x-hidden">
-      {/* LOGIN */}
-      {view === "login" && (
-        <div className="min-h-screen w-full flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center bg-blue-600 p-4 rounded-3xl shadow-xl shadow-blue-200 mb-4">
-                <Heart className="text-white" size={32} fill="currentColor" />
-              </div>
-              <h1 className="text-3xl font-black text-slate-800 italic tracking-tighter">VitaFlow</h1>
-              <p className="text-slate-500 font-medium text-sm">A saúde conectada de forma inteligente.</p>
+            <Textarea
+              label="Observações"
+              placeholder="Anote observações da consulta..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              rows={4}
+            />
+            <div className="flex flex-wrap gap-3">
+              <label className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                <input
+                  type="checkbox"
+                  checked={visibleToPatient}
+                  onChange={(e) => setVisibleToPatient(e.target.checked)}
+                />
+                Visível ao paciente
+              </label>
+              <label className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
+                <input
+                  type="checkbox"
+                  checked={visibleToSupport}
+                  onChange={(e) => setVisibleToSupport(e.target.checked)}
+                />
+                Visível à rede
+              </label>
             </div>
+          </Card>
+        </div>
 
-            <Card className="space-y-4">
-              <h2 className="text-xl font-black text-center text-slate-800 mb-2">Acessar conta</h2>
-              <p className="text-xs text-slate-400 text-center mb-4">Escolha seu perfil</p>
+        <Card title="Notas registradas" subtitle="Histórico clínico (mock)">
+          <div className="space-y-3">
+            {medicalNotes
+              .filter((n) => n.patientId === selectedPatient.id)
+              .map((n) => (
+                <div
+                  key={n.id}
+                  className="p-4 rounded-2xl"
+                  style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge variant="default">{n.date}</Badge>
+                    <div className="flex gap-2">
+                      {n.visibleToPatient && <Badge variant="info">Paciente</Badge>}
+                      {n.visibleToSupport && <Badge variant="indigo">Rede</Badge>}
+                    </div>
+                  </div>
+                  <p className="text-sm mt-2" style={{ color: Tokens.colors.text.primary }}>
+                    {n.text}
+                  </p>
+                </div>
+              ))}
+          </div>
+        </Card>
 
-              <div className="space-y-3">
-                {roleButtons.map((btn) => {
-                  const Icon = btn.icon;
-                  const ts = toneStyles[btn.tone];
-                  return (
-                    <button
-                      key={btn.role}
-                      onClick={() => handleLogin(btn.role)}
-                      className={`w-full p-4 border-2 border-slate-50 rounded-2xl flex items-center space-x-4 transition-all text-left group bg-white ${ts.borderHover}`}
-                    >
-                      <div
-                        className={`p-2 rounded-lg transition-colors ${ts.iconBox} ${ts.iconBoxHover}`}
-                      >
-                        <Icon size={20} />
-                      </div>
-                      <div>
-                        <span className="font-black text-slate-800 block text-sm">{btn.label}</span>
-                        <span className="text-[9px] text-slate-400 uppercase font-black">{btn.sub}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
+        <Button
+          variant="destructive"
+          icon={ChevronLeft}
+          onClick={() => setSelectedPatientId(null)}
+          className="w-full"
+        >
+          Voltar para lista de pacientes
+        </Button>
+      </div>
+    );
+  };
 
-            <div className="mt-6">
-              <LegalBanner />
+  const SupportDashboard = () => (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+          Rede de apoio
+        </h1>
+        <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
+          Acompanhamento autorizado (mock).
+        </p>
+      </header>
+
+      <Card
+        title="Visão rápida"
+        subtitle="Sem acesso a dados sensíveis por padrão"
+        footer={
+          <Button variant="ghost" icon={Shield} className="w-full">
+            Ajustar permissões (mock)
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
+            <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+              Alertas
+            </div>
+            <div className="text-3xl font-black mt-2">1</div>
+          </div>
+          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
+            <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+              Próxima consulta
+            </div>
+            <div className="text-[14px] font-black mt-2" style={{ color: Tokens.colors.text.primary }}>
+              20 Jan • Cardiologia
             </div>
           </div>
         </div>
-      )}
+      </Card>
 
-      {/* DASHBOARD */}
-      {view === "dashboard" && (
-        <>
-          <DesktopSidebar />
-
-          <main className="flex-1 p-4 md:p-10 pb-24 md:pb-10 max-w-5xl mx-auto w-full">
-            {showLegalNotice && (
-              <div className="relative">
-                <LegalBanner />
-                <button
-                  onClick={() => setShowLegalNotice(false)}
-                  className="absolute top-2 right-2 p-1 text-amber-400 hover:text-amber-600"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            {userRole === "medico" && renderDoctorDashboard()}
-            {userRole === "paciente" && renderPatientDashboard()}
-
-            {userRole === "apoio" && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-slate-800">Rede de Apoio (MVP)</h2>
-                <Card className="bg-slate-50/60 border-dashed">
-                  <p className="text-sm text-slate-600">
-                    Perfil “Rede de Apoio” ainda está como placeholder. Próxima etapa: níveis de acesso por permissão.
-                  </p>
-                </Card>
-
-                <button
-                  onClick={goHome}
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-xs uppercase tracking-wider inline-flex items-center gap-2"
-                >
-                  <Home size={16} /> Voltar ao Home
-                </button>
-              </div>
-            )}
-          </main>
-
-          <MobileNav />
-        </>
-      )}
+      <Card title="Resumo de rotina (mock)" subtitle="Apenas leitura">
+        <div className="space-y-2 text-sm" style={{ color: Tokens.colors.text.secondary }}>
+          <div className="flex items-center gap-2">
+            <CheckCircle size={16} style={{ color: Tokens.colors.success }} />
+            Medicação da manhã confirmada
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock size={16} style={{ color: Tokens.colors.warning }} />
+            Medicação da noite pendente
+          </div>
+        </div>
+      </Card>
     </div>
   );
+
+  /* =========================
+     Layout Shell
+  ========================= */
+
+  const DashboardShell = ({ children }) => (
+    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}>
+      {/* Desktop Sidebar */}
+      <aside
+        className="hidden md:flex w-72 p-8 flex-col sticky top-0 h-screen"
+        style={{
+          background: "rgba(255,255,255,0.82)",
+          borderRight: `1px solid ${Tokens.colors.border}`,
+          backdropFilter: "blur(18px)",
+        }}
+      >
+        <div className="flex items-center gap-3 mb-10">
+          <div className="p-2 rounded-xl" style={{ background: Tokens.colors.primary }}>
+            <Heart size={18} className="text-white" fill="currentColor" />
+          </div>
+          <div className="font-black italic tracking-tight">VitaFlow</div>
+        </div>
+
+        <nav className="space-y-2">
+          <button
+            onClick={() => {
+              setActiveTab("home");
+              setSelectedPatientId(null);
+            }}
+            className={cx("w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all")}
+            style={{
+              background: activeTab === "home" ? Tokens.colors.primary : "transparent",
+              color: activeTab === "home" ? "white" : Tokens.colors.text.secondary,
+              border: activeTab === "home" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
+            }}
+          >
+            <Activity size={18} />
+            <span className="text-sm">{userRole === "medico" ? "Pacientes" : "Painel"}</span>
+          </button>
+
+          {userRole === "paciente" && (
+            <>
+              <button
+                onClick={() => setActiveTab("calendar")}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
+                style={{
+                  background: activeTab === "calendar" ? Tokens.colors.primary : "transparent",
+                  color: activeTab === "calendar" ? "white" : Tokens.colors.text.secondary,
+                  border: activeTab === "calendar" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
+                }}
+              >
+                <Calendar size={18} />
+                <span className="text-sm">Agenda</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("history")}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
+                style={{
+                  background: activeTab === "history" ? Tokens.colors.primary : "transparent",
+                  color: activeTab === "history" ? "white" : Tokens.colors.text.secondary,
+                  border: activeTab === "history" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
+                }}
+              >
+                <FileCheck size={18} />
+                <span className="text-sm">Histórico</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("profileUpdate")}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
+                style={{
+                  background: activeTab === "profileUpdate" ? Tokens.colors.primary : "transparent",
+                  color: activeTab === "profileUpdate" ? "white" : Tokens.colors.text.secondary,
+                  border: activeTab === "profileUpdate" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
+                }}
+              >
+                <RefreshCw size={18} />
+                <span className="text-sm">Atualizar cadastro</span>
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => setActiveTab("playground")}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
+            style={{
+              background: activeTab === "playground" ? Tokens.colors.primary : "transparent",
+              color: activeTab === "playground" ? "white" : Tokens.colors.text.secondary,
+              border: activeTab === "playground" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
+            }}
+          >
+            <Layout size={18} />
+            <span className="text-sm">Design Kit</span>
+          </button>
+        </nav>
+
+        <div className="mt-auto">
+          <Button variant="destructive" icon={LogOut} className="w-full" onClick={logout}>
+            Encerrar sessão
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="flex-1 px-6 md:px-12 pb-32">
+        <StickyTopBar />
+        <div className="max-w-5xl mx-auto w-full">{children}</div>
+      </main>
+
+      {/* Mobile Nav (floating) */}
+      <nav
+        className="md:hidden fixed bottom-6 left-6 right-6 h-20 px-4 flex items-center justify-around z-50"
+        style={{
+          background: "rgba(255,255,255,0.82)",
+          border: `1px solid ${Tokens.colors.border}`,
+          borderRadius: 32,
+          boxShadow: Tokens.shadow.md,
+          backdropFilter: "blur(18px)",
+        }}
+      >
+        <button
+          onClick={() => {
+            setActiveTab("home");
+            setSelectedPatientId(null);
+          }}
+          className="p-3 rounded-2xl"
+          style={{
+            background: activeTab === "home" ? Tokens.colors.primary : "transparent",
+            color: activeTab === "home" ? "white" : Tokens.colors.text.secondary,
+          }}
+          aria-label="Home"
+        >
+          <Activity size={24} />
+        </button>
+
+        {userRole === "paciente" && (
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className="p-3 rounded-2xl"
+            style={{
+              background: activeTab === "calendar" ? Tokens.colors.primary : "transparent",
+              color: activeTab === "calendar" ? "white" : Tokens.colors.text.secondary,
+            }}
+            aria-label="Agenda"
+          >
+            <Calendar size={24} />
+          </button>
+        )}
+
+        <button
+          onClick={() => setActiveTab("playground")}
+          className="p-3 rounded-2xl"
+          style={{
+            background: activeTab === "playground" ? Tokens.colors.primary : "transparent",
+            color: activeTab === "playground" ? "white" : Tokens.colors.text.secondary,
+          }}
+          aria-label="Design Kit"
+        >
+          <Layout size={24} />
+        </button>
+
+        <button
+          onClick={openBackSheet}
+          className="p-3 rounded-2xl"
+          style={{ color: Tokens.colors.danger }}
+          aria-label="Voltar / trocar perfil"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      </nav>
+
+      <BackSheet />
+    </div>
+  );
+
+  /* =========================
+     Router (simple)
+  ========================= */
+
+  if (view === "login") return <LoginView />;
+
+  const content = (() => {
+    if (activeTab === "playground") return <UIPlayground />;
+    if (userRole === "medico") return <DoctorDashboard />;
+    if (userRole === "apoio") return <SupportDashboard />;
+
+    // paciente
+    if (activeTab === "calendar") return <PatientCalendar />;
+    if (activeTab === "history") return <PatientHistory />;
+    if (activeTab === "profileUpdate") return <PatientProfileUpdate />;
+    return <PatientHome />;
+  })();
+
+  return <DashboardShell>{content}</DashboardShell>;
 }
