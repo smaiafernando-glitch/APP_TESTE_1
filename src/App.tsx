@@ -3,37 +3,48 @@ import {
   Heart,
   User,
   Activity,
+  Plus,
+  CheckCircle,
   Users,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
+  Smile,
   FileCheck,
   Clock,
   Calendar,
+  Shield,
   Stethoscope,
   X,
   Thermometer,
   MapPin,
   Video,
+  Search,
+  ClipboardList,
   Layout,
   RefreshCw,
   Trash2,
   Info,
-  Edit3,
-  LogOut,
   Mail,
   Lock,
   Eye,
   EyeOff,
   KeyRound,
-  Shield,
-  CheckCircle,
-  Plus,
+  Pencil,
+  LogOut,
 } from "lucide-react";
 
-/* =========================================================
-  1) DESIGN TOKENS (APPLE-LIKE / PREMIUM)
-========================================================= */
+/**
+ * VIVERCOM — Single-file demo app
+ * - Apple-like design tokens + components
+ * - Login with email/senha + selecionar perfil (paciente/médico/rede)
+ * - Recuperar senha
+ * - Header fixo ÚNICO (sem duplicar ao scroll)
+ * - Paciente: Remédios primeiro, Consultas, Disposição (0-10), Aderência do mês, Atualização de cadastro
+ * - Médico: lista de pacientes, detalhes, notas e prescrições (mock)
+ * - Rede de apoio: visão reduzida (mock)
+ */
+
+/* ------------------------------ 1) DESIGN TOKENS ------------------------------ */
 
 const Tokens = {
   colors: {
@@ -42,23 +53,39 @@ const Tokens = {
     warning: "#FF9500",
     danger: "#FF3B30",
     indigo: "#5856D6",
-    text: { primary: "#1C1C1E", secondary: "#8E8E93", tertiary: "#C7C7CC" },
+    text: {
+      primary: "#1C1C1E",
+      secondary: "#8E8E93",
+      tertiary: "#C7C7CC",
+    },
     background: "#F2F2F7",
     surface: "#FFFFFF",
     border: "#E5E5EA",
-    surface2: "#FAFAFC",
   },
-  radius: { sm: 8, md: 12, lg: 16, xl: 24, full: 9999 },
-  shadow: { sm: "0 2px 8px rgba(0,0,0,0.04)", md: "0 8px 24px rgba(0,0,0,0.10)" },
+  radius: {
+    sm: "10px",
+    md: "14px",
+    lg: "18px",
+    xl: "24px",
+    full: "9999px",
+  },
+  shadow: {
+    sm: "0 2px 10px rgba(0,0,0,0.05)",
+    md: "0 6px 22px rgba(0,0,0,0.10)",
+  },
 };
 
-const cx = (...classes) => classes.filter(Boolean).join(" ");
+/* ------------------------------ 2) BASE COMPONENTS ------------------------------ */
 
-/* =========================================================
-  2) BASE COMPONENTS (DESIGN KIT)
-========================================================= */
+const cx = (...parts: Array<string | undefined | false>) => parts.filter(Boolean).join(" ");
 
-const Card = ({ children, className = "", title, subtitle, footer }) => (
+const Card: React.FC<{ title?: string; subtitle?: string; className?: string; children: React.ReactNode; footer?: React.ReactNode }> = ({
+  title,
+  subtitle,
+  className = "",
+  children,
+  footer,
+}) => (
   <div
     className={cx("p-5 md:p-6", className)}
     style={{
@@ -70,635 +97,280 @@ const Card = ({ children, className = "", title, subtitle, footer }) => (
   >
     {(title || subtitle) && (
       <div className="mb-4">
-        {title && (
-          <h3 className="text-[17px] font-bold tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-            {title}
-          </h3>
-        )}
-        {subtitle && (
-          <p className="text-[13px] font-medium" style={{ color: Tokens.colors.text.secondary }}>
-            {subtitle}
-          </p>
-        )}
+        {title && <h3 className="text-[17px] font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>{title}</h3>}
+        {subtitle && <p className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>{subtitle}</p>}
       </div>
     )}
     <div className="space-y-4">{children}</div>
-    {footer && <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${Tokens.colors.background}` }}>{footer}</div>}
+    {footer && (
+      <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${Tokens.colors.background}` }}>
+        {footer}
+      </div>
+    )}
   </div>
 );
 
-const Badge = ({ children, variant = "default" }) => {
-  const map = {
-    default: { bg: "#F1F2F6", fg: "#5C5C60" },
-    success: { bg: "#E9F9EE", fg: Tokens.colors.success },
+const Badge: React.FC<{ variant?: "default" | "info" | "success" | "warning" | "danger"; children: React.ReactNode }> = ({
+  variant = "default",
+  children,
+}) => {
+  const map: Record<string, { bg: string; fg: string }> = {
+    default: { bg: "#EEF0F4", fg: Tokens.colors.text.secondary },
     info: { bg: "#EBF5FF", fg: Tokens.colors.primary },
+    success: { bg: "#E9F9EE", fg: Tokens.colors.success },
     warning: { bg: "#FFF4E5", fg: Tokens.colors.warning },
     danger: { bg: "#FFEBEC", fg: Tokens.colors.danger },
-    indigo: { bg: "#EEEAFE", fg: Tokens.colors.indigo },
   };
-  const s = map[variant] || map.default;
+  const s = map[variant];
   return (
-    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-tight inline-flex items-center gap-1"
-      style={{ background: s.bg, color: s.fg }}
+    <span
+      className="px-2.5 py-1 text-[11px] font-black tracking-tight inline-flex items-center gap-1"
+      style={{ background: s.bg, color: s.fg, borderRadius: "10px" }}
     >
       {children}
     </span>
   );
 };
 
-const Button = ({
-  children,
-  variant = "primary",
-  icon: Icon,
-  onClick,
-  className = "",
-  loading = false,
-  disabled = false,
-  size = "md",
-  type = "button",
-}) => {
-  const sizes = {
-    sm: "px-4 py-2.5 text-[12px] rounded-2xl",
-    md: "px-5 py-3 text-sm rounded-2xl",
-    lg: "px-6 py-3.5 text-sm rounded-[22px]",
+const Button: React.FC<{
+  variant?: "primary" | "secondary" | "ghost" | "destructive";
+  icon?: React.ElementType;
+  loading?: boolean;
+  disabled?: boolean;
+  className?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}> = ({ variant = "primary", icon: Icon, loading, disabled, className = "", onClick, children }) => {
+  const base =
+    "inline-flex items-center justify-center gap-2 font-black tracking-tight transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100";
+  const size = "px-5 py-3 text-[13px]";
+  const styles: Record<string, React.CSSProperties> = {
+    primary: { background: Tokens.colors.primary, color: "white" },
+    secondary: { background: "#EEF0F4", color: Tokens.colors.text.primary },
+    ghost: { background: "transparent", color: Tokens.colors.primary },
+    destructive: { background: "#FFEBEC", color: Tokens.colors.danger },
   };
-  const styles = {
-    primary: { background: Tokens.colors.primary, color: "white", border: "1px solid transparent" },
-    secondary: { background: "#F1F2F6", color: Tokens.colors.text.primary, border: `1px solid ${Tokens.colors.border}` },
-    ghost: { background: "transparent", color: Tokens.colors.primary, border: `1px solid ${Tokens.colors.border}` },
-    destructive: { background: "#FFEBEC", color: Tokens.colors.danger, border: "1px solid transparent" },
-  };
-  const s = styles[variant] || styles.primary;
 
   return (
     <button
-      type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={cx(
-        "inline-flex items-center justify-center font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100",
-        sizes[size],
-        className
-      )}
-      style={{ ...s, boxShadow: variant === "primary" ? "0 6px 18px rgba(0,122,255,0.18)" : "none" }}
+      className={cx(base, size, "rounded-2xl", className)}
+      style={styles[variant]}
     >
-      {loading ? <RefreshCw className="animate-spin mr-2" size={18} /> : Icon ? <Icon className="mr-2" size={18} /> : null}
+      {loading ? <RefreshCw size={18} className="animate-spin" /> : Icon ? <Icon size={18} /> : null}
       {children}
     </button>
   );
 };
 
-const Input = ({ label, placeholder, type = "text", value, onChange, leftIcon: LeftIcon, rightSlot }) => (
-  <div className="space-y-1.5 w-full">
+const Input: React.FC<{
+  label?: string;
+  placeholder?: string;
+  type?: string;
+  value?: string;
+  onChange?: (v: string) => void;
+  right?: React.ReactNode;
+}> = ({ label, placeholder, type = "text", value, onChange, right }) => (
+  <div className="space-y-1.5">
     {label && (
-      <label className="text-[12px] font-bold px-1 uppercase tracking-wider" style={{ color: Tokens.colors.text.secondary }}>
+      <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
         {label}
       </label>
     )}
-
-    <div
-      className="flex items-center gap-2 px-4 py-3.5"
-      style={{ background: Tokens.colors.background, borderRadius: Tokens.radius.xl, border: `1px solid ${Tokens.colors.border}` }}
-    >
-      {LeftIcon && <LeftIcon size={18} style={{ color: Tokens.colors.text.secondary }} />}
+    <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl" style={{ background: Tokens.colors.background }}>
       <input
         type={type}
         value={value}
-        onChange={onChange}
+        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className="w-full border-0 bg-transparent text-sm outline-none"
+        className="w-full bg-transparent outline-none text-[14px] placeholder:font-semibold"
         style={{ color: Tokens.colors.text.primary }}
       />
-      {rightSlot}
+      {right}
     </div>
   </div>
 );
 
-const Textarea = ({ label, placeholder, value, onChange, rows = 5 }) => (
-  <div className="space-y-1.5 w-full">
-    {label && (
-      <label className="text-[12px] font-bold px-1 uppercase tracking-wider" style={{ color: Tokens.colors.text.secondary }}>
-        {label}
-      </label>
-    )}
-    <textarea
-      rows={rows}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full border-0 px-4 py-3.5 text-sm focus:ring-2 focus:ring-blue-100 transition-all resize-none outline-none"
-      style={{ background: Tokens.colors.background, borderRadius: Tokens.radius.xl, color: Tokens.colors.text.primary, border: `1px solid ${Tokens.colors.border}` }}
-    />
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+    {children}
   </div>
 );
 
-const Modal = ({ open, title, subtitle, children, onClose }) => {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[100]">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="absolute inset-x-0 top-10 md:top-16 px-4">
-        <div
-          className="mx-auto max-w-lg p-5 md:p-6"
-          style={{
-            background: "rgba(255,255,255,0.92)",
-            border: `1px solid ${Tokens.colors.border}`,
-            borderRadius: Tokens.radius.xl,
-            boxShadow: Tokens.shadow.md,
-            backdropFilter: "blur(16px)",
-          }}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-[17px] font-black" style={{ color: Tokens.colors.text.primary }}>
-                {title}
-              </h3>
-              {subtitle && (
-                <p className="text-[13px] font-medium mt-1" style={{ color: Tokens.colors.text.secondary }}>
-                  {subtitle}
-                </p>
-              )}
-            </div>
-            <button onClick={onClose} className="p-2 rounded-2xl" style={{ color: Tokens.colors.text.secondary }} aria-label="Fechar">
-              <X size={18} />
-            </button>
-          </div>
-          <div className="mt-4">{children}</div>
-        </div>
-      </div>
-    </div>
-  );
+/* ------------------------------ 3) APP TYPES & MOCK DATA ------------------------------ */
+
+type Role = "paciente" | "medico" | "apoio";
+type View = "auth" | "forgot" | "dashboard";
+
+type TabPaciente = "home" | "calendar" | "history" | "access" | "profileUpdate";
+type TabMedico = "patients" | "calendar";
+type TabApoio = "home";
+
+type Patient = {
+  id: string;
+  name: string;
+  code: string;
+  birth: string;
+  blood: string;
+  phone: string;
+  adherence: number; // 0..100
+  medsToday: Array<{ id: string; name: string; dose: string; time: string; note?: string; taken?: boolean }>;
+  appointments: Array<{ id: string; specialty: string; doctor: string; dateLabel: string; day: string; month: string; time: string; type: "Presencial" | "Teleconsulta"; location: string }>;
+  dispositionWeekAvg: number; // 0..10
 };
 
-/* =========================================================
-  3) HELPERS
-========================================================= */
+const mockPatient: Patient = {
+  id: "p1",
+  name: "Ricardo Souza",
+  code: "VC-123",
+  birth: "12/05/1985",
+  blood: "O+",
+  phone: "(11) 98888-7777",
+  adherence: 78,
+  medsToday: [
+    { id: "m1", name: "Losartana", dose: "50mg", time: "08:00", note: "Em jejum", taken: false },
+    { id: "m2", name: "Anlodipino", dose: "5mg", time: "20:00", taken: false },
+  ],
+  appointments: [
+    {
+      id: "a1",
+      specialty: "Cardiologia",
+      doctor: "Dr. Alberto Rossi",
+      dateLabel: "20 Jan 2026",
+      day: "20",
+      month: "JAN",
+      time: "14:30",
+      type: "Presencial",
+      location: "Clínica Vida, Sala 302",
+    },
+    {
+      id: "a2",
+      specialty: "Clínico Geral",
+      doctor: "Dra. Beatriz",
+      dateLabel: "05 Fev 2026",
+      day: "05",
+      month: "FEV",
+      time: "10:00",
+      type: "Teleconsulta",
+      location: "Link via App",
+    },
+  ],
+  dispositionWeekAvg: 8,
+};
 
-function startOfMonthISO(d = new Date()) {
-  const x = new Date(d.getFullYear(), d.getMonth(), 1);
-  return x.toISOString().slice(0, 10);
-}
-function todayISO(d = new Date()) {
-  return d.toISOString().slice(0, 10);
-}
-function clampInt(n, min, max) {
-  const x = parseInt(n, 10);
-  if (Number.isNaN(x)) return min;
-  return Math.max(min, Math.min(max, x));
-}
-
-/* =========================================================
-  4) APP
-========================================================= */
+/* ------------------------------ 4) APP ------------------------------ */
 
 export default function App() {
-  // Auth views
-  const [authView, setAuthView] = useState("login"); // login | forgot | resetSent
-  const [view, setView] = useState("auth"); // auth | dashboard
-
-  // Role + session
-  const [userRole, setUserRole] = useState("paciente"); // paciente | medico | apoio
-  const [activeTab, setActiveTab] = useState("home"); // home | calendar | history | playground | profileUpdate
-  const [selectedPatientId, setSelectedPatientId] = useState(null);
-
-  // Back sheet
-  const [backSheetOpen, setBackSheetOpen] = useState(false);
-
-  // Auth form state (mock)
-  const [email, setEmail] = useState("ricardo@email.com");
+  // auth
+  const [view, setView] = useState<View>("auth");
+  const [role, setRole] = useState<Role>("paciente");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-  // Mock Data
-  const [patients] = useState([{ id: "p1", name: "Ricardo Souza", code: "VF-123", birth: "12/05/1985", blood: "O+", phone: "(11) 98888-7777" }]);
+  // dashboard
+  const [patient] = useState<Patient>(mockPatient);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
-  const [patientProfile, setPatientProfile] = useState({
-    fullName: "Ricardo Souza",
-    phone: "(11) 98888-7777",
-    address: "Rua Exemplo, 123 - São Paulo/SP",
-    blood: "O+",
-    healthPlan: "Plano Vida - 000123",
-    referenceDoctors: "Dr. Alberto Rossi",
-  });
+  const [tabPaciente, setTabPaciente] = useState<TabPaciente>("home");
+  const [tabMedico, setTabMedico] = useState<TabMedico>("patients");
+  const [tabApoio, setTabApoio] = useState<TabApoio>("home");
 
-  const [dailyReport, setDailyReport] = useState("");
+  // back sheet (fixed button behavior)
+  const [showBackSheet, setShowBackSheet] = useState(false);
+
+  // patient daily
+  const [dailyText, setDailyText] = useState("");
   const [disposition, setDisposition] = useState(8);
 
-  const [medications] = useState([
-    { id: "m1", name: "Losartana", dose: "50mg", time: "08:00", instructions: "Em jejum" },
-    { id: "m2", name: "Anlodipino", dose: "5mg", time: "20:00", instructions: "" },
-  ]);
+  // meds toggle (mock)
+  const [meds, setMeds] = useState(patient.medsToday);
 
-  const [medLog, setMedLog] = useState([
-    { dateISO: "2026-01-02", medicationId: "m1", taken: true, timeActual: "08:05" },
-    { dateISO: "2026-01-02", medicationId: "m2", taken: true, timeActual: "20:10" },
-    { dateISO: "2026-01-03", medicationId: "m1", taken: true, timeActual: "08:01" },
-    { dateISO: "2026-01-03", medicationId: "m2", taken: false, timeActual: "" },
-  ]);
-
-  const [appointments] = useState([
-    { id: "a1", doctor: "Dr. Alberto Rossi", specialty: "Cardiologia", date: "20 Jan 2026", time: "14:30", type: "Presencial", location: "Clínica Vida, Sala 302" },
-    { id: "a2", doctor: "Dra. Beatriz", specialty: "Clínico Geral", date: "05 Fev 2026", time: "10:00", type: "Teleconsulta", location: "Link via App" },
-  ]);
-
-  const doctorProfile = useMemo(
-    () => ({ name: "Dr. Alberto Rossi", crm: "123456-SP", specialty: "Cardiologia", myPatients: ["p1"] }),
-    []
-  );
-
-  const [medicalNotes, setMedicalNotes] = useState([
-    { id: "n1", patientId: "p1", date: "2026-01-10", text: "Paciente apresenta boa adesão ao tratamento inicial.", visibleToPatient: true, visibleToSupport: false },
-  ]);
-
-  const LegalBanner = () => (
-    <div className="p-4 rounded-2xl flex items-start gap-3" style={{ background: "#FFF4E5", border: "1px solid #FFE7C2" }}>
-      <AlertTriangle size={18} style={{ color: Tokens.colors.warning }} className="mt-0.5" />
-      <div className="text-[11px] leading-relaxed font-medium" style={{ color: "#7A4B00" }}>
-        <div className="font-black uppercase tracking-widest text-[10px]">Aviso legal obrigatório</div>
-        Este aplicativo é uma ferramenta de organização pessoal. O app <strong>não realiza diagnósticos</strong> e não substitui avaliação médica.
-      </div>
-    </div>
-  );
-
-  /* =========================
-     AUTH FLOW (mock)
-  ========================= */
-
-  const doLogin = () => {
-    setAuthLoading(true);
-    // mock validation
-    setTimeout(() => {
-      setAuthLoading(false);
-      setView("dashboard");
-      setActiveTab("home");
-      setSelectedPatientId(null);
-    }, 650);
-  };
-
-  const doForgot = () => {
-    setAuthLoading(true);
-    setTimeout(() => {
-      setAuthLoading(false);
-      setAuthView("resetSent");
-    }, 650);
-  };
-
-  const logout = () => {
-    setView("auth");
-    setAuthView("login");
-    setPassword("");
-    setShowPass(false);
-    setSelectedPatientId(null);
-    setActiveTab("home");
-    setBackSheetOpen(false);
-  };
-
-  /* =========================
-     Back Sheet (global)
-  ========================= */
-
-  const openBackSheet = () => setBackSheetOpen(true);
+  // legal banner
+  const [showLegal, setShowLegal] = useState(true);
 
   const headerContext = useMemo(() => {
-    if (view !== "dashboard") return null;
-
-    if (userRole === "medico") {
-      if (selectedPatientId) return { title: "Paciente", subtitle: "Visão clínica" };
-      return { title: "Médico", subtitle: `${doctorProfile.specialty} • ${doctorProfile.crm}` };
+    if (view === "auth") {
+      return { title: "Acessar conta", subtitle: "Entre com seu e-mail e senha" };
     }
-    if (userRole === "apoio") return { title: "Rede de Apoio", subtitle: "Acompanhamento autorizado" };
+    if (view === "forgot") {
+      return { title: "Recuperar senha", subtitle: "Vamos te ajudar a acessar" };
+    }
+    // dashboard
+    if (role === "paciente") {
+      const map: Record<TabPaciente, { title: string; subtitle: string }> = {
+        home: { title: "Paciente", subtitle: "Organização diária" },
+        calendar: { title: "Agenda", subtitle: "Consultas e lembretes" },
+        history: { title: "Histórico", subtitle: "Linha do tempo" },
+        access: { title: "Médicos e Acessos", subtitle: "Controle de compartilhamento" },
+        profileUpdate: { title: "Atualizar cadastro", subtitle: "Dados pessoais e saúde" },
+      };
+      return map[tabPaciente];
+    }
+    if (role === "medico") {
+      if (selectedPatientId) return { title: "Paciente", subtitle: "Visão clínica (somente organizacional)" };
+      return tabMedico === "patients"
+        ? { title: "Médico", subtitle: "Pacientes vinculados" }
+        : { title: "Agenda médica", subtitle: "Consultas do dia" };
+    }
+    return { title: "Rede de apoio", subtitle: "Acompanhamento autorizado" };
+  }, [view, role, tabPaciente, tabMedico, selectedPatientId]);
 
-    if (activeTab === "profileUpdate") return { title: "Atualização de Cadastro", subtitle: "Revise seus dados" };
-    return { title: "Paciente", subtitle: "Organização diária" };
-  }, [view, userRole, activeTab, selectedPatientId, doctorProfile]);
+  function logout() {
+    setView("auth");
+    setSelectedPatientId(null);
+    setTabPaciente("home");
+    setTabMedico("patients");
+    setTabApoio("home");
+    setEmail("");
+    setPassword("");
+  }
 
-  const BackSheet = () => (
-    <Modal
-      open={backSheetOpen}
-      title="Para onde você quer voltar?"
-      subtitle="Trocar perfil, atualizar cadastro ou encerrar sessão."
-      onClose={() => setBackSheetOpen(false)}
-    >
-      <div className="grid grid-cols-1 gap-2">
-        <div className="p-3 rounded-2xl" style={{ background: Tokens.colors.background, border: `1px solid ${Tokens.colors.border}` }}>
-          <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-            Trocar perfil rapidamente
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-            <Button
-              size="sm"
-              variant={userRole === "paciente" ? "primary" : "secondary"}
-              icon={User}
-              onClick={() => {
-                setBackSheetOpen(false);
-                setUserRole("paciente");
-                setActiveTab("home");
-                setSelectedPatientId(null);
-              }}
-            >
-              Paciente
-            </Button>
-            <Button
-              size="sm"
-              variant={userRole === "medico" ? "primary" : "secondary"}
-              icon={Stethoscope}
-              onClick={() => {
-                setBackSheetOpen(false);
-                setUserRole("medico");
-                setActiveTab("home");
-                setSelectedPatientId(null);
-              }}
-            >
-              Médico
-            </Button>
-            <Button
-              size="sm"
-              variant={userRole === "apoio" ? "primary" : "secondary"}
-              icon={Users}
-              onClick={() => {
-                setBackSheetOpen(false);
-                setUserRole("apoio");
-                setActiveTab("home");
-                setSelectedPatientId(null);
-              }}
-            >
-              Apoio
-            </Button>
-          </div>
-        </div>
+  function login() {
+    setIsAuthLoading(true);
+    setTimeout(() => {
+      setIsAuthLoading(false);
+      setView("dashboard");
+    }, 650);
+  }
 
-        {userRole === "paciente" && (
-          <Button
-            variant="ghost"
-            icon={RefreshCw}
-            onClick={() => {
-              setBackSheetOpen(false);
-              setActiveTab("profileUpdate");
-            }}
-            className="w-full"
-          >
-            Ir para atualização de cadastro
-          </Button>
-        )}
+  function openBackSheet() {
+    // keep the back button fixed on screen, with choices:
+    setShowBackSheet(true);
+  }
 
-        <Button
-          variant="destructive"
-          icon={LogOut}
-          onClick={() => {
-            setBackSheetOpen(false);
-            logout();
-          }}
-          className="w-full"
-        >
-          Encerrar sessão
-        </Button>
-      </div>
-    </Modal>
-  );
+  function applyBackAction(action: "switchRole" | "toAuth" | "toProfileUpdate") {
+    setShowBackSheet(false);
 
-  /* =========================
-     Adherence (mock)
-  ========================= */
+    if (action === "toAuth") {
+      logout();
+      return;
+    }
 
-  const adherence = useMemo(() => {
-    const start = startOfMonthISO(new Date("2026-01-14T00:00:00"));
-    const end = todayISO(new Date("2026-01-14T00:00:00"));
-    const days = 14; // deterministic for mock Jan/14
-    const expected = medications.length * days;
-    const taken = medLog.filter((e) => e.dateISO >= start && e.dateISO <= end && e.taken).length;
-    const pct = expected ? Math.round((taken / expected) * 100) : 0;
-    return { expected, taken, pct, days };
-  }, [medications.length, medLog]);
-
-  const todaySchedule = useMemo(() => {
-    return medications.map((m) => {
-      const logToday = medLog.find((e) => e.dateISO === "2026-01-14" && e.medicationId === m.id);
-      return { ...m, status: logToday?.taken ? "tomado" : "pendente", timeActual: logToday?.timeActual || "" };
-    });
-  }, [medications, medLog]);
-
-  const confirmMedication = (medicationId) => {
-    const dateISO = "2026-01-14";
-    const now = "08:00"; // mock
-    setMedLog((prev) => {
-      const idx = prev.findIndex((e) => e.dateISO === dateISO && e.medicationId === medicationId);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = { ...copy[idx], taken: true, timeActual: now };
-        return copy;
+    if (action === "toProfileUpdate") {
+      if (role !== "paciente") {
+        setRole("paciente");
       }
-      return [...prev, { dateISO, medicationId, taken: true, timeActual: now }];
-    });
-  };
+      setTabPaciente("profileUpdate");
+      return;
+    }
 
-  /* =========================================================
-     AUTH SCREENS (NEW)
-  ========================================================= */
+    if (action === "switchRole") {
+      // go to a simple selector inside auth (keeps app flow)
+      setView("auth");
+      setPassword("");
+      return;
+    }
+  }
 
-  const AuthShell = ({ children }) => (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
-      <div className="max-w-sm w-full space-y-8">
-        <div className="text-center space-y-2">
-          <div
-            className="inline-flex p-4 mb-2"
-            style={{ background: Tokens.colors.primary, borderRadius: 22, boxShadow: "0 18px 28px rgba(0,122,255,0.18)" }}
-          >
-            <Heart className="text-white" size={32} fill="currentColor" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter italic" style={{ color: Tokens.colors.text.primary }}>
-            VitaFlow
-          </h1>
-          <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
-            Saúde com experiência premium.
-          </p>
-        </div>
-
-        {children}
-
-        <p className="text-center text-[11px] font-medium px-4" style={{ color: Tokens.colors.text.secondary }}>
-          Ao entrar, você concorda com nossos termos de privacidade e compartilhamento de dados.
-        </p>
-      </div>
-    </div>
-  );
-
-  const RoleSegment = ({ value, onChange }) => {
-    const roles = [
-      { id: "paciente", label: "Paciente", icon: User },
-      { id: "medico", label: "Médico", icon: Stethoscope },
-      { id: "apoio", label: "Apoio", icon: Users },
-    ];
-    return (
-      <div className="p-1 rounded-2xl" style={{ background: Tokens.colors.background, border: `1px solid ${Tokens.colors.border}` }}>
-        <div className="grid grid-cols-3 gap-1">
-          {roles.map((r) => {
-            const active = value === r.id;
-            const Icon = r.icon;
-            return (
-              <button
-                key={r.id}
-                onClick={() => onChange(r.id)}
-                className="px-2 py-2.5 rounded-2xl flex items-center justify-center gap-2 font-black text-[11px] uppercase tracking-wide transition-all"
-                style={{
-                  background: active ? Tokens.colors.surface : "transparent",
-                  color: active ? Tokens.colors.primary : Tokens.colors.text.secondary,
-                  boxShadow: active ? Tokens.shadow.sm : "none",
-                }}
-              >
-                <Icon size={16} />
-                <span className="hidden sm:inline">{r.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const LoginScreen = () => (
-    <AuthShell>
-      <Card
-        title="Acessar conta"
-        subtitle="Entre com e-mail e senha e selecione o seu perfil."
-        footer={
-          <div className="space-y-3">
-            <Button className="w-full" icon={CheckCircle} loading={authLoading} onClick={doLogin}>
-              Entrar
-            </Button>
-
-            <button
-              onClick={() => {
-                setAuthView("forgot");
-                setForgotEmail(email || "");
-              }}
-              className="w-full text-[12px] font-bold underline underline-offset-4"
-              style={{ color: Tokens.colors.primary }}
-            >
-              Esqueci minha senha
-            </button>
-          </div>
-        }
-      >
-        <RoleSegment value={userRole} onChange={setUserRole} />
-
-        <Input
-          label="E-mail"
-          placeholder="seuemail@dominio.com"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          leftIcon={Mail}
-        />
-
-        <Input
-          label="Senha"
-          placeholder="Digite sua senha"
-          type={showPass ? "text" : "password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          leftIcon={Lock}
-          rightSlot={
-            <button
-              onClick={() => setShowPass((s) => !s)}
-              className="p-1.5 rounded-xl"
-              style={{ color: Tokens.colors.text.secondary }}
-              aria-label={showPass ? "Ocultar senha" : "Mostrar senha"}
-              type="button"
-            >
-              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          }
-        />
-
-        <LegalBanner />
-      </Card>
-    </AuthShell>
-  );
-
-  const ForgotPasswordScreen = () => (
-    <AuthShell>
-      <Card
-        title="Recuperar senha"
-        subtitle="Informe seu e-mail. Vamos enviar um link de recuperação."
-        footer={
-          <div className="flex flex-col gap-3">
-            <Button className="w-full" icon={KeyRound} loading={authLoading} onClick={doForgot}>
-              Enviar link
-            </Button>
-            <Button
-              className="w-full"
-              variant="secondary"
-              icon={ChevronLeft}
-              onClick={() => setAuthView("login")}
-              disabled={authLoading}
-            >
-              Voltar para login
-            </Button>
-          </div>
-        }
-      >
-        <Input
-          label="E-mail"
-          placeholder="seuemail@dominio.com"
-          type="email"
-          value={forgotEmail}
-          onChange={(e) => setForgotEmail(e.target.value)}
-          leftIcon={Mail}
-        />
-        <div className="p-4 rounded-2xl flex items-start gap-3" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
-          <Info size={18} style={{ color: Tokens.colors.primary }} className="mt-0.5" />
-          <p className="text-[12px] font-medium" style={{ color: Tokens.colors.text.secondary }}>
-            Dica: confirme se o e-mail está correto e verifique também a caixa de spam.
-          </p>
-        </div>
-      </Card>
-    </AuthShell>
-  );
-
-  const ResetSentScreen = () => (
-    <AuthShell>
-      <Card
-        title="Link enviado"
-        subtitle="Se o e-mail estiver cadastrado, você receberá as instruções de redefinição."
-        footer={
-          <div className="flex flex-col gap-3">
-            <Button className="w-full" icon={ChevronLeft} variant="secondary" onClick={() => setAuthView("login")}>
-              Voltar para login
-            </Button>
-            <Button
-              className="w-full"
-              variant="ghost"
-              icon={Mail}
-              onClick={() => {
-                setAuthView("forgot");
-              }}
-            >
-              Enviar novamente
-            </Button>
-          </div>
-        }
-      >
-        <div className="p-4 rounded-2xl flex items-start gap-3" style={{ background: "#E9F9EE", border: `1px solid #CFF3DB` }}>
-          <CheckCircle size={18} style={{ color: Tokens.colors.success }} className="mt-0.5" />
-          <p className="text-[12px] font-medium" style={{ color: "#1E6B35" }}>
-            Verifique sua caixa de entrada e siga o link para criar uma nova senha.
-          </p>
-        </div>
-        <LegalBanner />
-      </Card>
-    </AuthShell>
-  );
-
-  /* =========================================================
-     DASHBOARD SHELL
-  ========================================================= */
+  /* ------------------------------ 5) FIXED HEADER (SINGLE) ------------------------------ */
 
   const StickyTopBar = () => (
-    <div className="sticky top-0 z-50 -mx-6 md:-mx-12 px-6 md:px-12 pt-4 pb-3">
+    <div className="sticky top-0 z-50 px-4 md:px-10 pt-4 pb-3">
       <div
-        className="flex items-center justify-between gap-3 px-3 py-2.5"
+        className="flex items-center justify-between gap-3 px-4 py-2.5"
         style={{
           background: "rgba(255,255,255,0.82)",
           border: `1px solid ${Tokens.colors.border}`,
@@ -709,7 +381,7 @@ export default function App() {
       >
         <button
           onClick={openBackSheet}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl font-bold"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl font-black"
           style={{ color: Tokens.colors.text.secondary, background: Tokens.colors.background }}
         >
           <ChevronLeft size={18} />
@@ -718,388 +390,396 @@ export default function App() {
 
         <div className="min-w-0 flex-1 text-center">
           <div className="text-[14px] font-black truncate" style={{ color: Tokens.colors.text.primary }}>
-            {headerContext?.title || ""}
+            {headerContext.title}
           </div>
-          <div className="text-[11px] font-medium truncate" style={{ color: Tokens.colors.text.secondary }}>
-            {headerContext?.subtitle || ""}
+          <div className="text-[11px] truncate font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            {headerContext.subtitle}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {userRole === "paciente" && (
+          {view === "dashboard" && role === "paciente" && tabPaciente !== "profileUpdate" && (
             <button
-              onClick={() => setActiveTab("profileUpdate")}
+              onClick={() => setTabPaciente("profileUpdate")}
               className="p-2 rounded-2xl"
               style={{ background: Tokens.colors.background, color: Tokens.colors.primary }}
-              aria-label="Atualizar cadastro"
               title="Atualizar cadastro"
             >
-              <Edit3 size={18} />
+              <Pencil size={18} />
             </button>
           )}
-          <button
-            onClick={() => setActiveTab("playground")}
-            className="p-2 rounded-2xl"
-            style={{ background: Tokens.colors.background, color: Tokens.colors.text.secondary }}
-            aria-label="Design Kit"
-            title="Design Kit"
-          >
-            <Layout size={18} />
-          </button>
+
+          {view === "dashboard" && (
+            <button
+              onClick={logout}
+              className="p-2 rounded-2xl"
+              style={{ background: Tokens.colors.background, color: Tokens.colors.danger }}
+              title="Encerrar sessão"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 
-  const DashboardShell = ({ children }) => (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}>
-      {/* Desktop Sidebar */}
-      <aside
-        className="hidden md:flex w-72 p-8 flex-col sticky top-0 h-screen"
-        style={{
-          background: "rgba(255,255,255,0.82)",
-          borderRight: `1px solid ${Tokens.colors.border}`,
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        <div className="flex items-center gap-3 mb-10">
-          <div className="p-2 rounded-xl" style={{ background: Tokens.colors.primary }}>
-            <Heart size={18} className="text-white" fill="currentColor" />
+  /* ------------------------------ 6) SCREENS ------------------------------ */
+
+  const LegalBanner = () =>
+    showLegal ? (
+      <div className="relative">
+        <div
+          className="flex items-start gap-3 p-4 rounded-2xl"
+          style={{ background: "#FFF4E5", border: "1px solid #FFE1B5" }}
+        >
+          <Info size={18} style={{ color: Tokens.colors.warning }} />
+          <div className="text-[12px] font-semibold leading-relaxed" style={{ color: "#7A4A00" }}>
+            <span className="font-black uppercase tracking-widest text-[11px] block mb-1">Aviso legal</span>
+            Este aplicativo é uma ferramenta de organização pessoal. O app <strong>não realiza diagnósticos</strong> e não substitui avaliação
+            médica.
           </div>
-          <div className="font-black italic tracking-tight">VitaFlow</div>
+        </div>
+        <button
+          onClick={() => setShowLegal(false)}
+          className="absolute top-2 right-2 p-2 rounded-2xl"
+          style={{ color: Tokens.colors.warning, background: "rgba(255,255,255,0.65)" }}
+        >
+          <X size={14} />
+        </button>
+      </div>
+    ) : null;
+
+  const AuthScreen = () => (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          <div
+            className="inline-flex items-center justify-center p-4"
+            style={{
+              background: Tokens.colors.primary,
+              borderRadius: "22px",
+              boxShadow: "0 18px 40px rgba(0,122,255,0.20)",
+            }}
+          >
+            <Heart size={30} className="text-white" fill="currentColor" />
+          </div>
+          <div className="text-3xl font-black italic tracking-tighter" style={{ color: Tokens.colors.text.primary }}>
+            VIVERCOM
+          </div>
+          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            Saúde conectada com experiência premium.
+          </div>
         </div>
 
-        <nav className="space-y-2">
-          <button
-            onClick={() => {
-              setActiveTab("home");
-              setSelectedPatientId(null);
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
-            style={{
-              background: activeTab === "home" ? Tokens.colors.primary : "transparent",
-              color: activeTab === "home" ? "white" : Tokens.colors.text.secondary,
-              border: activeTab === "home" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
-            }}
-          >
-            <Activity size={18} />
-            <span className="text-sm">{userRole === "medico" ? "Pacientes" : "Painel"}</span>
-          </button>
+        <Card>
+          <div className="text-center text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+            Acessar conta
+          </div>
 
-          {userRole === "paciente" && (
-            <>
+          {/* Role selector */}
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { id: "paciente", label: "Paciente", icon: User },
+              { id: "medico", label: "Médico", icon: Stethoscope },
+              { id: "apoio", label: "Rede", icon: Users },
+            ] as Array<{ id: Role; label: string; icon: React.ElementType }>).map((r) => {
+              const active = role === r.id;
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => setRole(r.id)}
+                  className="px-3 py-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all"
+                  style={{
+                    background: active ? "#EBF5FF" : Tokens.colors.background,
+                    border: `1px solid ${active ? "#BBDFFF" : Tokens.colors.background}`,
+                    color: active ? Tokens.colors.primary : Tokens.colors.text.secondary,
+                  }}
+                >
+                  <r.icon size={18} />
+                  <span className="text-[11px] font-black tracking-tight">{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <Input
+            label="E-mail"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={setEmail}
+            type="email"
+            right={<Mail size={18} style={{ color: Tokens.colors.text.tertiary }} />}
+          />
+          <Input
+            label="Senha"
+            placeholder="••••••••"
+            value={password}
+            onChange={setPassword}
+            type={showPass ? "text" : "password"}
+            right={
               <button
-                onClick={() => setActiveTab("calendar")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
-                style={{
-                  background: activeTab === "calendar" ? Tokens.colors.primary : "transparent",
-                  color: activeTab === "calendar" ? "white" : Tokens.colors.text.secondary,
-                  border: activeTab === "calendar" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
-                }}
+                onClick={() => setShowPass((s) => !s)}
+                className="p-2 rounded-xl"
+                style={{ color: Tokens.colors.text.tertiary }}
+                type="button"
               >
-                <Calendar size={18} />
-                <span className="text-sm">Agenda</span>
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            }
+          />
 
-              <button
-                onClick={() => setActiveTab("history")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
-                style={{
-                  background: activeTab === "history" ? Tokens.colors.primary : "transparent",
-                  color: activeTab === "history" ? "white" : Tokens.colors.text.secondary,
-                  border: activeTab === "history" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
-                }}
-              >
-                <FileCheck size={18} />
-                <span className="text-sm">Histórico</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("profileUpdate")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
-                style={{
-                  background: activeTab === "profileUpdate" ? Tokens.colors.primary : "transparent",
-                  color: activeTab === "profileUpdate" ? "white" : Tokens.colors.text.secondary,
-                  border: activeTab === "profileUpdate" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
-                }}
-              >
-                <RefreshCw size={18} />
-                <span className="text-sm">Atualizar cadastro</span>
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => setActiveTab("playground")}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all"
-            style={{
-              background: activeTab === "playground" ? Tokens.colors.primary : "transparent",
-              color: activeTab === "playground" ? "white" : Tokens.colors.text.secondary,
-              border: activeTab === "playground" ? "1px solid transparent" : `1px solid ${Tokens.colors.border}`,
-            }}
-          >
-            <Layout size={18} />
-            <span className="text-sm">Design Kit</span>
-          </button>
-        </nav>
-
-        <div className="mt-auto">
-          <Button variant="destructive" icon={LogOut} className="w-full" onClick={logout}>
-            Encerrar sessão
+          <Button className="w-full" icon={Lock} loading={isAuthLoading} onClick={login} disabled={!email || !password}>
+            Entrar
           </Button>
-        </div>
-      </aside>
 
-      {/* Main */}
-      <main className="flex-1 px-6 md:px-12 pb-32">
-        <StickyTopBar />
-        <div className="max-w-5xl mx-auto w-full">{children}</div>
-      </main>
-
-      {/* Mobile Nav (floating) */}
-      <nav
-        className="md:hidden fixed bottom-6 left-6 right-6 h-20 px-4 flex items-center justify-around z-50"
-        style={{
-          background: "rgba(255,255,255,0.82)",
-          border: `1px solid ${Tokens.colors.border}`,
-          borderRadius: 32,
-          boxShadow: Tokens.shadow.md,
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        <button
-          onClick={() => {
-            setActiveTab("home");
-            setSelectedPatientId(null);
-          }}
-          className="p-3 rounded-2xl"
-          style={{
-            background: activeTab === "home" ? Tokens.colors.primary : "transparent",
-            color: activeTab === "home" ? "white" : Tokens.colors.text.secondary,
-          }}
-          aria-label="Home"
-        >
-          <Activity size={24} />
-        </button>
-
-        {userRole === "paciente" && (
           <button
-            onClick={() => setActiveTab("calendar")}
-            className="p-3 rounded-2xl"
-            style={{
-              background: activeTab === "calendar" ? Tokens.colors.primary : "transparent",
-              color: activeTab === "calendar" ? "white" : Tokens.colors.text.secondary,
-            }}
-            aria-label="Agenda"
+            onClick={() => setView("forgot")}
+            className="w-full text-center text-[12px] font-black tracking-tight"
+            style={{ color: Tokens.colors.primary }}
           >
-            <Calendar size={24} />
+            Esqueci minha senha
           </button>
-        )}
+        </Card>
 
-        <button
-          onClick={() => setActiveTab("playground")}
-          className="p-3 rounded-2xl"
-          style={{
-            background: activeTab === "playground" ? Tokens.colors.primary : "transparent",
-            color: activeTab === "playground" ? "white" : Tokens.colors.text.secondary,
-          }}
-          aria-label="Design Kit"
-        >
-          <Layout size={24} />
-        </button>
-
-        <button onClick={openBackSheet} className="p-3 rounded-2xl" style={{ color: Tokens.colors.danger }} aria-label="Voltar / trocar perfil">
-          <ChevronLeft size={24} />
-        </button>
-      </nav>
-
-      <BackSheet />
+        <LegalBanner />
+      </div>
     </div>
   );
 
-  /* =========================================================
-     DASHBOARD CONTENTS
-  ========================================================= */
+  const ForgotScreen = () => {
+    const [forgotEmail, setForgotEmail] = useState(email);
+    const [sent, setSent] = useState(false);
+    const [sending, setSending] = useState(false);
+
+    function send() {
+      setSending(true);
+      setTimeout(() => {
+        setSending(false);
+        setSent(true);
+      }, 700);
+    }
+
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <div className="text-2xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+              Recuperar senha
+            </div>
+            <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+              Enviaremos um link de redefinição.
+            </div>
+          </div>
+
+          <Card>
+            <Input label="E-mail" placeholder="seu@email.com" value={forgotEmail} onChange={setForgotEmail} type="email" />
+
+            {!sent ? (
+              <Button className="w-full" icon={KeyRound} loading={sending} onClick={send} disabled={!forgotEmail}>
+                Enviar link
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div
+                  className="p-4 rounded-2xl text-[12px] font-semibold"
+                  style={{ background: "#E9F9EE", color: Tokens.colors.success }}
+                >
+                  Link enviado! Verifique seu e-mail.
+                </div>
+                <Button className="w-full" variant="secondary" onClick={() => setView("auth")}>
+                  Voltar para login
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          <LegalBanner />
+        </div>
+      </div>
+    );
+  };
+
+  /* ------------------------------ 7) DASHBOARDS ------------------------------ */
 
   const PatientHome = () => (
     <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Resumo Diário
-        </h1>
-        <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
-          Quarta-feira, 14 de Janeiro
-        </p>
-      </header>
-
-      {/* 1) AGENDA DE REMÉDIOS EM PRIMEIRO */}
+      {/* 1) Agenda de remédios em primeiro */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-            Agenda de remédios
-          </h2>
-          <Badge variant="info">Aderência mês: {adherence.pct}% ({adherence.taken}/{adherence.expected})</Badge>
-        </div>
+        <SectionTitle>Agenda de remédios</SectionTitle>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {todaySchedule.map((m) => (
-            <Card
-              key={m.id}
-              title={m.name}
-              subtitle={`${m.dose} • ${m.time}${m.instructions ? ` • ${m.instructions}` : ""}`}
-              footer={
-                <div className="flex items-center justify-between gap-3">
-                  {m.status === "tomado" ? (
-                    <div className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: Tokens.colors.success }}>
-                      <CheckCircle size={18} />
-                      Tomado {m.timeActual ? `às ${m.timeActual}` : ""}
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: Tokens.colors.warning }}>
+          {meds.map((m) => (
+            <Card key={m.id} className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
                       <Clock size={18} />
-                      Pendente
                     </div>
-                  )}
+                    <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                      {m.time}
+                    </div>
+                    {m.note ? <Badge variant="warning">{m.note}</Badge> : null}
+                  </div>
+                  <div className="text-[16px] font-black" style={{ color: Tokens.colors.text.primary }}>
+                    {m.name}
+                  </div>
+                  <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                    Dose: {m.dose}
+                  </div>
+                </div>
 
-                  <Button size="sm" icon={CheckCircle} disabled={m.status === "tomado"} onClick={() => confirmMedication(m.id)}>
+                <button
+                  onClick={() =>
+                    setMeds((prev) => prev.map((x) => (x.id === m.id ? { ...x, taken: !x.taken } : x)))
+                  }
+                  className="w-12 h-12 rounded-2xl inline-flex items-center justify-center transition-all active:scale-[0.98]"
+                  style={{
+                    background: m.taken ? "#E9F9EE" : Tokens.colors.background,
+                    color: m.taken ? Tokens.colors.success : Tokens.colors.text.tertiary,
+                    border: `1px solid ${Tokens.colors.border}`,
+                  }}
+                  title={m.taken ? "Desmarcar" : "Confirmar"}
+                >
+                  {m.taken ? <CheckCircle size={22} /> : <Plus size={22} />}
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* 2) Consultas */}
+      <section className="space-y-3">
+        <SectionTitle>Agenda de consultas</SectionTitle>
+
+        <div className="space-y-4">
+          {patient.appointments.map((a) => (
+            <Card key={a.id} className="hover:shadow-md transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-2xl text-center" style={{ background: "#EEF0F4", minWidth: 76 }}>
+                    <div className="text-[10px] font-black uppercase" style={{ color: Tokens.colors.text.secondary }}>
+                      {a.month}
+                    </div>
+                    <div className="text-[22px] font-black" style={{ color: Tokens.colors.text.primary }}>
+                      {a.day}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={a.type === "Teleconsulta" ? "info" : "success"}>
+                        {a.type === "Teleconsulta" ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Video size={12} /> Teleconsulta
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin size={12} /> Presencial
+                          </span>
+                        )}
+                      </Badge>
+                      <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                        {a.time}
+                      </span>
+                    </div>
+                    <div className="text-[16px] font-black">{a.specialty}</div>
+                    <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                      {a.doctor} • {a.location}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="secondary" icon={Info} className="px-4 py-2">
+                    Detalhes
+                  </Button>
+                  <Button icon={Calendar} className="px-4 py-2">
                     Confirmar
                   </Button>
                 </div>
-              }
-            >
-              <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
-                <div className="flex items-center justify-between">
-                  <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.primary }}>
-                    Tratamentos ativos
-                  </div>
-                  <Badge variant={adherence.pct >= 80 ? "success" : adherence.pct >= 50 ? "warning" : "danger"}>
-                    {adherence.pct >= 80 ? "Boa aderência" : adherence.pct >= 50 ? "Atenção" : "Baixa aderência"}
-                  </Badge>
-                </div>
-
-                <div className="mt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                      Aderência do mês
-                    </span>
-                    <span className="text-[11px] font-black" style={{ color: Tokens.colors.primary }}>
-                      {adherence.pct}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: Tokens.colors.border }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, adherence.pct))}%`,
-                        background: Tokens.colors.primary,
-                        boxShadow: "0 10px 18px rgba(0,122,255,0.20)",
-                      }}
-                    />
-                  </div>
-                  <div className="mt-2 text-[11px] font-medium" style={{ color: Tokens.colors.text.secondary }}>
-                    Meta sugerida: 85%+ • Base: {adherence.days} dias (mock)
-                  </div>
-                </div>
               </div>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* 2) CONSULTAS */}
+      {/* 3) Relato + disposição */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-            Agenda de consultas
-          </h2>
-          <Button size="sm" variant="ghost" icon={Calendar} onClick={() => setActiveTab("calendar")}>
-            Ver agenda
-          </Button>
-        </div>
+        <SectionTitle>Relato e disposição</SectionTitle>
 
-        <div className="grid grid-cols-1 gap-4">
-          {appointments.slice(0, 2).map((appt) => (
-            <Card
-              key={appt.id}
-              title={appt.specialty}
-              subtitle={`${appt.doctor} • ${appt.date} • ${appt.time}`}
-              footer={
-                <div className="flex flex-wrap gap-2 justify-between items-center">
-                  <Badge variant={appt.type === "Teleconsulta" ? "indigo" : "info"}>
-                    {appt.type === "Teleconsulta" ? <Video size={14} /> : <MapPin size={14} />}
-                    {appt.type}
-                  </Badge>
-                  <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                    {appt.location}
-                  </div>
-                </div>
-              }
-            >
-              <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-2" style={{ color: Tokens.colors.text.secondary }}>
-                  <Clock size={16} />
-                  <span className="text-[12px] font-bold">{appt.time}</span>
-                </div>
-                <Button size="sm" variant="secondary" icon={Info}>
-                  Detalhes
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* 3) RELATO + DISPOSIÇÃO */}
-      <section className="space-y-3">
-        <h2 className="text-[12px] font-black uppercase tracking-widest px-1" style={{ color: Tokens.colors.text.secondary }}>
-          Relato e disposição
-        </h2>
-
-        <Card
-          title="Como está sua disposição hoje?"
-          subtitle="0 muito indisposto • 10 muito disposto"
-          footer={
-            <div className="flex justify-end">
-              <Button size="sm" icon={CheckCircle}>
-                Salvar
-              </Button>
-            </div>
-          }
-        >
-          <Textarea
-            label="Relato do dia"
-            placeholder="Escreva em linguagem simples como você se sentiu hoje..."
-            value={dailyReport}
-            onChange={(e) => setDailyReport(e.target.value)}
-            rows={4}
+        <Card title="Relato diário" subtitle="Texto simples. Sem análise clínica automática.">
+          <textarea
+            value={dailyText}
+            onChange={(e) => setDailyText(e.target.value)}
+            className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
+            style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
+            placeholder="Como você está se sentindo hoje?"
           />
 
-          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background, border: `1px solid ${Tokens.colors.border}` }}>
+          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
             <div className="flex items-center justify-between mb-3">
-              <div className="inline-flex items-center gap-2">
-                <Thermometer size={18} style={{ color: Tokens.colors.primary }} />
-                <span className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                  Disposição
-                </span>
+              <div className="inline-flex items-center gap-2 text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                <Thermometer size={16} />
+                Como está sua disposição hoje
               </div>
-              <span className="text-xl font-black" style={{ color: Tokens.colors.primary }}>
+
+              <div className="text-[20px] font-black" style={{ color: Tokens.colors.primary }}>
                 {disposition}/10
-              </span>
+              </div>
             </div>
 
             <input
               type="range"
-              min="0"
-              max="10"
-              step="1"
+              min={0}
+              max={10}
+              step={1}
               value={disposition}
-              onChange={(e) => setDisposition(clampInt(e.target.value, 0, 10))}
-              className="w-full accent-blue-600"
+              onChange={(e) => setDisposition(parseInt(e.target.value, 10))}
+              className="w-full"
+              style={{ accentColor: Tokens.colors.primary }}
             />
-            <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ color: Tokens.colors.text.tertiary }}>
-              <span>0</span>
-              <span>10</span>
+
+            <div className="flex justify-between mt-2 text-[11px] font-black" style={{ color: Tokens.colors.text.secondary }}>
+              <span>0 muito indisposto</span>
+              <span>10 muito disposto</span>
             </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button icon={Smile}>Salvar</Button>
+          </div>
+        </Card>
+      </section>
+
+      {/* 4) Aderência do tratamento */}
+      <section className="space-y-3">
+        <SectionTitle>Aderência do mês</SectionTitle>
+
+        <Card title="Aderência ao tratamento" subtitle="Percentual de execução ao longo do mês (mock).">
+          <div className="flex items-center justify-between">
+            <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+              Progresso mensal
+            </div>
+            <Badge variant={patient.adherence >= 80 ? "success" : patient.adherence >= 60 ? "warning" : "danger"}>
+              {patient.adherence}%
+            </Badge>
+          </div>
+
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: "#EEF0F4" }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${patient.adherence}%`,
+                background: patient.adherence >= 80 ? Tokens.colors.success : patient.adherence >= 60 ? Tokens.colors.warning : Tokens.colors.danger,
+              }}
+            />
+          </div>
+
+          <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            Meta sugerida: 85%
           </div>
         </Card>
       </section>
@@ -1107,39 +787,25 @@ export default function App() {
   );
 
   const PatientCalendar = () => (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Minha agenda
-        </h1>
-        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
-          Consultas e compromissos médicos.
-        </p>
-      </header>
-
-      <div className="grid grid-cols-1 gap-4">
-        {appointments.map((appt) => (
-          <Card
-            key={appt.id}
-            title={appt.specialty}
-            subtitle={`${appt.date} • ${appt.time}`}
-            footer={
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant={appt.type === "Teleconsulta" ? "indigo" : "info"}>
-                  {appt.type === "Teleconsulta" ? <Video size={14} /> : <MapPin size={14} />}
-                  {appt.type}
-                </Badge>
-                <div className="text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                  {appt.location}
+    <div className="space-y-8">
+      <SectionTitle>Consultas</SectionTitle>
+      <div className="space-y-4">
+        {patient.appointments.map((a) => (
+          <Card key={a.id}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant={a.type === "Teleconsulta" ? "info" : "success"}>{a.type}</Badge>
+                  <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                    {a.dateLabel} • {a.time}
+                  </span>
+                </div>
+                <div className="text-[16px] font-black">{a.specialty}</div>
+                <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                  {a.doctor} • {a.location}
                 </div>
               </div>
-            }
-          >
-            <div className="flex items-center justify-between">
-              <div className="text-[13px] font-bold" style={{ color: Tokens.colors.text.primary }}>
-                {appt.doctor}
-              </div>
-              <Button size="sm" variant="secondary" icon={CheckCircle}>
+              <Button icon={Calendar} className="px-4 py-2">
                 Confirmar
               </Button>
             </div>
@@ -1150,105 +816,110 @@ export default function App() {
   );
 
   const PatientHistory = () => (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Histórico
-        </h1>
-        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
-          Linha do tempo organizacional (mock).
-        </p>
-      </header>
-
-      <div className="grid grid-cols-1 gap-4">
-        <Card
-          title="14 Jan 2026"
-          subtitle="Disposição: 8/10"
-          footer={
-            <div className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.success }}>
-              <CheckCircle size={16} />
-              Registro salvo
-            </div>
-          }
-        >
-          <div className="text-sm" style={{ color: Tokens.colors.text.secondary }}>
-            “Hoje me senti melhor, sem dor de cabeça.”
+    <div className="space-y-8">
+      <SectionTitle>Linha do tempo</SectionTitle>
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <div className="flex items-center justify-between">
+            <Badge variant="info">14 Jan 2026</Badge>
+            <span className="text-[12px] font-black" style={{ color: Tokens.colors.primary }}>
+              Disposição: {Math.max(0, Math.min(10, disposition - (i - 1)))} /10
+            </span>
+          </div>
+          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            Registro: “{dailyText || "Senti melhora durante o dia e consegui manter a rotina."}”
+          </div>
+          <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            <CheckCircle size={16} style={{ color: Tokens.colors.success }} /> Medicação registrada
           </div>
         </Card>
-      </div>
+      ))}
+    </div>
+  );
+
+  const PatientAccess = () => (
+    <div className="space-y-8">
+      <SectionTitle>Vínculos</SectionTitle>
+
+      <Card
+        title="Seu código de vinculação"
+        subtitle="Forneça ao médico para solicitar vínculo."
+        footer={
+          <Button variant="secondary" icon={ClipboardList} className="w-full">
+            Copiar código
+          </Button>
+        }
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
+            {patient.code}
+          </div>
+          <Badge variant="info">Paciente</Badge>
+        </div>
+      </Card>
+
+      <Card title="Médicos autorizados" subtitle="Controle quem pode ver seus dados.">
+        <div className="flex items-center justify-between p-3 rounded-2xl" style={{ background: Tokens.colors.background }}>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
+              <Stethoscope size={20} />
+            </div>
+            <div>
+              <div className="text-[14px] font-black">Dr. Alberto Rossi</div>
+              <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                Cardiologia • desde Jan/2026
+              </div>
+            </div>
+          </div>
+
+          <Button variant="destructive" icon={Trash2} className="px-4 py-2">
+            Revogar
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 
   const PatientProfileUpdate = () => (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Atualização de cadastro
-        </h1>
-        <p className="text-sm font-medium" style={{ color: Tokens.colors.text.secondary }}>
-          Revise e mantenha seus dados atualizados (mock).
-        </p>
-      </header>
+    <div className="space-y-8">
+      <SectionTitle>Dados do cadastro</SectionTitle>
 
-      <Card
-        title="Dados essenciais"
-        subtitle="Informações pessoais e contato"
-        footer={
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
-            <Button variant="secondary" icon={X} onClick={() => setActiveTab("home")}>
-              Cancelar
-            </Button>
-            <Button icon={CheckCircle} onClick={() => setActiveTab("home")}>
-              Salvar alterações
-            </Button>
-          </div>
-        }
-      >
+      <Card title="Dados pessoais" subtitle="Atualize informações essenciais.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Nome completo"
-            placeholder="Ex: Ricardo Souza"
-            value={patientProfile.fullName}
-            onChange={(e) => setPatientProfile((p) => ({ ...p, fullName: e.target.value }))}
-            leftIcon={User}
-          />
-          <Input
-            label="Telefone"
-            placeholder="(11) 99999-9999"
-            value={patientProfile.phone}
-            onChange={(e) => setPatientProfile((p) => ({ ...p, phone: e.target.value }))}
-            leftIcon={Users}
-          />
-          <Input
-            label="Tipo sanguíneo"
-            placeholder="Ex: O+"
-            value={patientProfile.blood}
-            onChange={(e) => setPatientProfile((p) => ({ ...p, blood: e.target.value }))}
-            leftIcon={Shield}
-          />
-          <Input
-            label="Plano de saúde"
-            placeholder="Nome e número"
-            value={patientProfile.healthPlan}
-            onChange={(e) => setPatientProfile((p) => ({ ...p, healthPlan: e.target.value }))}
-            leftIcon={Info}
-          />
-          <div className="md:col-span-2">
-            <Input
-              label="Endereço"
-              placeholder="Rua, número, cidade"
-              value={patientProfile.address}
-              onChange={(e) => setPatientProfile((p) => ({ ...p, address: e.target.value }))}
-              leftIcon={MapPin}
+          <Input label="Nome completo" placeholder="Ex: Ricardo Souza" value={patient.name} onChange={() => {}} />
+          <Input label="Telefone" placeholder="(00) 00000-0000" value={patient.phone} onChange={() => {}} />
+          <Input label="Data de nascimento" placeholder="DD/MM/AAAA" value={patient.birth} onChange={() => {}} />
+          <Input label="Tipo sanguíneo" placeholder="O+" value={patient.blood} onChange={() => {}} />
+          <Input label="Endereço" placeholder="Rua, número, bairro" />
+          <Input label="Plano de saúde" placeholder="Nome / número" />
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary">Cancelar</Button>
+          <Button icon={RefreshCw}>Salvar alterações</Button>
+        </div>
+      </Card>
+
+      <Card title="Saúde (declaratório)" subtitle="Texto simples. Sem validação clínica.">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-1.5">
+            <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+              Condições pré-existentes
+            </label>
+            <textarea
+              className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
+              style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
+              placeholder="Ex: hipertensão leve, alergias..."
             />
           </div>
-          <div className="md:col-span-2">
-            <Input
-              label="Médicos de referência"
-              placeholder="Ex: Dr. X, Dra. Y"
-              value={patientProfile.referenceDoctors}
-              onChange={(e) => setPatientProfile((p) => ({ ...p, referenceDoctors: e.target.value }))}
-              leftIcon={Stethoscope}
+          <div className="space-y-1.5">
+            <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+              Medicamentos de uso contínuo
+            </label>
+            <textarea
+              className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
+              style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
+              placeholder="Ex: Losartana 50mg..."
             />
           </div>
         </div>
@@ -1257,359 +928,380 @@ export default function App() {
   );
 
   const DoctorDashboard = () => {
-    const selectedPatient = selectedPatientId ? patients.find((p) => p.id === selectedPatientId) : null;
-    const [newNote, setNewNote] = useState("");
-    const [visibleToPatient, setVisibleToPatient] = useState(true);
-    const [visibleToSupport, setVisibleToSupport] = useState(false);
+    const patients = [patient];
+    const selected = selectedPatientId ? patients.find((p) => p.id === selectedPatientId) : null;
 
-    const saveNote = () => {
-      if (!selectedPatient) return;
-      const trimmed = newNote.trim();
-      if (!trimmed) return;
-
-      const note = {
-        id: `n${Math.random().toString(16).slice(2)}`,
-        patientId: selectedPatient.id,
-        date: "2026-01-14",
-        text: trimmed,
-        visibleToPatient,
-        visibleToSupport,
-      };
-      setMedicalNotes((prev) => [note, ...prev]);
-      setNewNote("");
-      setVisibleToPatient(true);
-      setVisibleToSupport(false);
-    };
-
-    if (!selectedPatient) {
+    if (!selected) {
       return (
-        <div className="space-y-6">
-          <header className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-              Seus pacientes
-            </h1>
-            <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
-              Gerencie sua lista de acompanhamento.
-            </p>
-          </header>
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                Pacientes ativos
+              </div>
+              <div className="text-4xl font-black mt-2">1</div>
+            </Card>
+            <Card>
+              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                Consultas hoje
+              </div>
+              <div className="text-4xl font-black mt-2">2</div>
+            </Card>
+            <Card>
+              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                Alertas
+              </div>
+              <div className="text-4xl font-black mt-2">0</div>
+            </Card>
+          </div>
 
           <Card
-            title="Meus pacientes vinculados"
-            subtitle="Toque para abrir"
-            footer={
-              <Button variant="ghost" icon={Search} className="w-full">
-                Vincular novo paciente (mock)
-              </Button>
-            }
+            title="Meus pacientes"
+            subtitle="Clique para abrir o prontuário organizacional."
+            footer={<Button icon={Search} className="w-full">Vincular novo paciente</Button>}
           >
             <div className="space-y-3">
-              {patients
-                .filter((p) => doctorProfile.myPatients.includes(p.id))
-                .map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPatientId(p.id)}
-                    className="w-full text-left p-4 rounded-2xl transition-all"
-                    style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
-                          <User size={20} />
-                        </div>
-                        <div>
-                          <div className="text-[15px] font-black" style={{ color: Tokens.colors.text.primary }}>
-                            {p.name}
-                          </div>
-                          <div className="text-[11px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                            {p.code} • {p.phone}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight size={18} style={{ color: Tokens.colors.text.tertiary }} />
+              {patients.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPatientId(p.id)}
+                  className="w-full p-4 rounded-2xl flex items-center justify-between transition-all hover:shadow-sm"
+                  style={{ background: Tokens.colors.background }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
+                      <User />
                     </div>
-                  </button>
-                ))}
+                    <div className="text-left">
+                      <div className="text-[15px] font-black">{p.name}</div>
+                      <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                        {p.code} • {p.phone}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} style={{ color: Tokens.colors.text.tertiary }} />
+                </button>
+              ))}
             </div>
           </Card>
+
+          <LegalBanner />
         </div>
       );
     }
 
     return (
-      <div className="space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-            {selectedPatient.name}
-          </h1>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="info">{selectedPatient.code}</Badge>
-            <Badge>{selectedPatient.birth}</Badge>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card title="Cadastro do paciente" subtitle="Dados vitais e contato">
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span style={{ color: Tokens.colors.text.secondary }}>Tipo sanguíneo</span>
-                <span className="font-bold" style={{ color: Tokens.colors.text.primary }}>
-                  {selectedPatient.blood}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: Tokens.colors.text.secondary }}>Telefone</span>
-                <span className="font-bold" style={{ color: Tokens.colors.text.primary }}>
-                  {selectedPatient.phone}
-                </span>
-              </div>
+      <div className="space-y-8">
+        <Card
+          title={selected.name}
+          subtitle={`Código ${selected.code} • Nasc. ${selected.birth}`}
+          footer={
+            <div className="flex gap-2">
+              <Button variant="secondary" icon={Trash2} className="w-full">
+                Encerrar vínculo
+              </Button>
+              <Button icon={Plus} className="w-full">
+                Nova prescrição
+              </Button>
             </div>
-          </Card>
-
-          <Card
-            title="Nova nota clínica"
-            subtitle="Responsabilidade do profissional"
-            footer={
-              <div className="flex flex-col sm:flex-row gap-3 justify-end">
-                <Button variant="secondary" icon={Trash2} onClick={() => setNewNote("")}>
-                  Limpar
-                </Button>
-                <Button icon={CheckCircle} onClick={saveNote}>
-                  Salvar nota
-                </Button>
+          }
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
+              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                Dados
               </div>
-            }
-          >
-            <Textarea label="Observações" placeholder="Anote observações da consulta..." value={newNote} onChange={(e) => setNewNote(e.target.value)} rows={4} />
-            <div className="flex flex-wrap gap-3">
-              <label className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                <input type="checkbox" checked={visibleToPatient} onChange={(e) => setVisibleToPatient(e.target.checked)} />
-                Visível ao paciente
-              </label>
-              <label className="inline-flex items-center gap-2 text-[12px] font-bold" style={{ color: Tokens.colors.text.secondary }}>
-                <input type="checkbox" checked={visibleToSupport} onChange={(e) => setVisibleToSupport(e.target.checked)} />
-                Visível à rede
-              </label>
-            </div>
-          </Card>
-        </div>
-
-        <Card title="Notas registradas" subtitle="Histórico clínico (mock)">
-          <div className="space-y-3">
-            {medicalNotes
-              .filter((n) => n.patientId === selectedPatient.id)
-              .map((n) => (
-                <div key={n.id} className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
-                  <div className="flex items-center justify-between gap-3">
-                    <Badge variant="default">{n.date}</Badge>
-                    <div className="flex gap-2">
-                      {n.visibleToPatient && <Badge variant="info">Paciente</Badge>}
-                      {n.visibleToSupport && <Badge variant="indigo">Rede</Badge>}
-                    </div>
-                  </div>
-                  <p className="text-sm mt-2" style={{ color: Tokens.colors.text.primary }}>
-                    {n.text}
-                  </p>
+              <div className="mt-3 space-y-2 text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                <div className="flex justify-between">
+                  <span>Tipo sanguíneo</span>
+                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.blood}</span>
                 </div>
-              ))}
+                <div className="flex justify-between">
+                  <span>Telefone</span>
+                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Aderência (mês)</span>
+                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.adherence}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
+              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                Relato (somente leitura)
+              </div>
+              <div className="mt-3 text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                “{dailyText || "Paciente relata evolução estável, sem eventos relevantes hoje."}”
+              </div>
+              <div className="mt-3">
+                <Badge variant="info">Disposição: {disposition}/10</Badge>
+              </div>
+            </div>
           </div>
         </Card>
 
-        <Button variant="destructive" icon={ChevronLeft} onClick={() => setSelectedPatientId(null)} className="w-full">
-          Voltar para lista de pacientes
+        <Card title="Notas clínicas" subtitle="Uso interno. (mock)">
+          <textarea
+            className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
+            style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
+            placeholder="Digite suas notas aqui..."
+          />
+          <div className="flex justify-end">
+            <Button icon={CheckCircle}>Salvar nota</Button>
+          </div>
+        </Card>
+
+        <Button variant="ghost" icon={ChevronLeft} onClick={() => setSelectedPatientId(null)} className="w-full">
+          Voltar aos pacientes
         </Button>
+
+        <LegalBanner />
       </div>
     );
   };
 
   const SupportDashboard = () => (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Rede de apoio
-        </h1>
-        <p className="font-medium" style={{ color: Tokens.colors.text.secondary }}>
-          Acompanhamento autorizado (mock).
-        </p>
-      </header>
-
-      <Card title="Visão rápida" subtitle="Sem acesso a dados sensíveis por padrão">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
-            <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-              Alertas
-            </div>
-            <div className="text-3xl font-black mt-2">1</div>
-          </div>
-          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.surface2, border: `1px solid ${Tokens.colors.border}` }}>
-            <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-              Próxima consulta
-            </div>
-            <div className="text-[14px] font-black mt-2" style={{ color: Tokens.colors.text.primary }}>
-              20 Jan • Cardiologia
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card title="Resumo de rotina (mock)" subtitle="Apenas leitura">
-        <div className="space-y-2 text-sm" style={{ color: Tokens.colors.text.secondary }}>
-          <div className="flex items-center gap-2">
-            <CheckCircle size={16} style={{ color: Tokens.colors.success }} />
-            Medicação da manhã confirmada
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={16} style={{ color: Tokens.colors.warning }} />
-            Medicação da noite pendente
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-
-  /* =========================
-     Mini Docs (Design Kit)
-  ========================= */
-
-  const UIPlayground = () => (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-          Design System
-        </h1>
-        <p className="text-sm font-medium mt-2" style={{ color: Tokens.colors.text.secondary }}>
-          Tokens + componentes base (Apple-like).
-        </p>
-      </div>
-
-      <Card title="Botões">
-        <div className="flex flex-wrap gap-3">
-          <Button icon={Plus}>Primary</Button>
-          <Button variant="secondary" icon={Info}>Secondary</Button>
-          <Button variant="ghost" icon={Layout}>Ghost</Button>
-          <Button variant="destructive" icon={Trash2}>Destructive</Button>
-          <Button loading icon={RefreshCw}>Loading</Button>
+      <Card title="Rede de apoio" subtitle="Acesso limitado (mock).">
+        <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
+          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+            Você está acompanhando:
+          </div>
+          <div className="text-[16px] font-black mt-1">{patient.name}</div>
+          <div className="text-[12px] font-semibold mt-2" style={{ color: Tokens.colors.text.secondary }}>
+            Acesso: agenda de medicamentos e consultas.
+          </div>
         </div>
-      </Card>
 
-      <Card title="Inputs">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="E-mail" placeholder="seuemail@dominio.com" value="" onChange={() => {}} leftIcon={Mail} />
-          <Input label="Senha" placeholder="••••••••" value="" onChange={() => {}} leftIcon={Lock} />
+          {patient.medsToday.slice(0, 2).map((m) => (
+            <Card key={m.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+                    {m.time}
+                  </div>
+                  <div className="text-[15px] font-black">{m.name}</div>
+                  <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                    {m.dose}
+                  </div>
+                </div>
+                <Badge variant={m.taken ? "success" : "warning"}>{m.taken ? "Tomado" : "Pendente"}</Badge>
+              </div>
+            </Card>
+          ))}
         </div>
       </Card>
 
-      <Card title="Badges">
-        <div className="flex flex-wrap gap-2">
-          <Badge>Default</Badge>
-          <Badge variant="info">Info</Badge>
-          <Badge variant="success">Sucesso</Badge>
-          <Badge variant="warning">Atenção</Badge>
-          <Badge variant="danger">Crítico</Badge>
-        </div>
-      </Card>
+      <LegalBanner />
     </div>
   );
 
-  /* =========================
-     Dashboard Router
-  ========================= */
+  const Dashboard = () => {
+    const isPaciente = role === "paciente";
+    const isMedico = role === "medico";
+    const isApoio = role === "apoio";
 
-  const content = (() => {
-    if (activeTab === "playground") return <UIPlayground />;
-    if (userRole === "medico") return <DoctorDashboard />;
-    if (userRole === "apoio") return <SupportDashboard />;
-    if (activeTab === "calendar") return <PatientCalendar />;
-    if (activeTab === "history") return <PatientHistory />;
-    if (activeTab === "profileUpdate") return <PatientProfileUpdate />;
-    return <PatientHome />;
-  })();
+    // sidebar items per role
+    const sideItems = isPaciente
+      ? [
+          { id: "home", label: "Painel geral", icon: Activity as any },
+          { id: "calendar", label: "Agenda", icon: Calendar as any },
+          { id: "history", label: "Histórico", icon: FileCheck as any },
+          { id: "access", label: "Médicos", icon: Shield as any },
+          { id: "profileUpdate", label: "Cadastro", icon: Pencil as any },
+        ]
+      : isMedico
+      ? [
+          { id: "patients", label: "Pacientes", icon: ClipboardList as any },
+          { id: "calendar", label: "Agenda médica", icon: Calendar as any },
+        ]
+      : [{ id: "home", label: "Resumo", icon: Activity as any }];
 
-  /* =========================
-     RENDER ROOT
-  ========================= */
+    const currentTabId = isPaciente ? tabPaciente : isMedico ? tabMedico : tabApoio;
 
-  if (view === "auth") {
-    if (authView === "login") return <LoginScreen />;
-    if (authView === "forgot") return <ForgotPasswordScreen />;
-    return <ResetSentScreen />;
-  }
+    function setTab(id: string) {
+      if (isPaciente) setTabPaciente(id as TabPaciente);
+      else if (isMedico) setTabMedico(id as TabMedico);
+      else setTabApoio(id as TabApoio);
 
-  return (
-    <DashboardShell>
-      <StickyTopBar />
-      <div className="max-w-5xl mx-auto w-full">{content}</div>
+      if (isMedico && id === "patients") setSelectedPatientId(null);
+    }
 
-      {/* Mobile Nav */}
-      <nav
-        className="md:hidden fixed bottom-6 left-6 right-6 h-20 px-4 flex items-center justify-around z-50"
-        style={{
-          background: "rgba(255,255,255,0.82)",
-          border: `1px solid ${Tokens.colors.border}`,
-          borderRadius: 32,
-          boxShadow: Tokens.shadow.md,
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        <button
-          onClick={() => {
-            setActiveTab("home");
-            setSelectedPatientId(null);
-          }}
-          className="p-3 rounded-2xl"
-          style={{
-            background: activeTab === "home" ? Tokens.colors.primary : "transparent",
-            color: activeTab === "home" ? "white" : Tokens.colors.text.secondary,
-          }}
-          aria-label="Home"
+    return (
+      <div className="min-h-screen flex" style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}>
+        {/* Sidebar (desktop) */}
+        <aside
+          className="hidden md:flex flex-col w-72 p-8 sticky top-0 h-screen"
+          style={{ background: "rgba(255,255,255,0.82)", borderRight: `1px solid ${Tokens.colors.border}`, backdropFilter: "blur(18px)" }}
         >
-          <Activity size={24} />
-        </button>
+          <div className="flex items-center gap-3 mb-10">
+            <div className="p-2 rounded-xl" style={{ background: Tokens.colors.primary }}>
+              <Heart size={16} className="text-white" fill="currentColor" />
+            </div>
+            <div className="text-[16px] font-black italic tracking-tight">VIVERCOM</div>
+          </div>
 
-        {userRole === "paciente" && (
+          <nav className="space-y-2 flex-1">
+            {sideItems.map((it) => {
+              const active = currentTabId === it.id;
+              return (
+                <button
+                  key={it.id}
+                  onClick={() => setTab(it.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black transition-all"
+                  style={{
+                    background: active ? Tokens.colors.primary : "transparent",
+                    color: active ? "white" : Tokens.colors.text.secondary,
+                  }}
+                >
+                  <it.icon size={20} />
+                  <span className="text-[13px]">{it.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
           <button
-            onClick={() => setActiveTab("calendar")}
-            className="p-3 rounded-2xl"
-            style={{
-              background: activeTab === "calendar" ? Tokens.colors.primary : "transparent",
-              color: activeTab === "calendar" ? "white" : Tokens.colors.text.secondary,
-            }}
-            aria-label="Agenda"
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black"
+            style={{ color: Tokens.colors.danger }}
           >
-            <Calendar size={24} />
+            <ChevronLeft size={20} />
+            Encerrar sessão
           </button>
-        )}
+        </aside>
 
-        <button
-          onClick={() => setActiveTab("playground")}
-          className="p-3 rounded-2xl"
-          style={{
-            background: activeTab === "playground" ? Tokens.colors.primary : "transparent",
-            color: activeTab === "playground" ? "white" : Tokens.colors.text.secondary,
-          }}
-          aria-label="Design Kit"
-        >
-          <Layout size={24} />
-        </button>
+        {/* Main */}
+        <div className="flex-1">
+          <StickyTopBar />
 
-        <button onClick={openBackSheet} className="p-3 rounded-2xl" style={{ color: Tokens.colors.danger }} aria-label="Voltar / trocar perfil">
-          <ChevronLeft size={24} />
-        </button>
-      </nav>
+          <main className="px-4 md:px-10 pb-28 md:pb-10 max-w-5xl mx-auto w-full">
+            {isPaciente && tabPaciente === "home" && <PatientHome />}
+            {isPaciente && tabPaciente === "calendar" && <PatientCalendar />}
+            {isPaciente && tabPaciente === "history" && <PatientHistory />}
+            {isPaciente && tabPaciente === "access" && <PatientAccess />}
+            {isPaciente && tabPaciente === "profileUpdate" && <PatientProfileUpdate />}
 
-      <BackSheet />
-    </DashboardShell>
-  );
-}
+            {isMedico && tabMedico === "patients" && <DoctorDashboard />}
+            {isMedico && tabMedico === "calendar" && (
+              <div className="space-y-8">
+                <SectionTitle>Agenda médica</SectionTitle>
+                <Card title="Hoje" subtitle="Consultas do dia (mock)">
+                  <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[15px] font-black">Cardiologia — Ricardo Souza</div>
+                        <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
+                          14:30 • Presencial • Clínica Vida
+                        </div>
+                      </div>
+                      <Badge variant="info">Em breve</Badge>
+                    </div>
+                  </div>
+                </Card>
+                <LegalBanner />
+              </div>
+            )}
 
-/* =========================================================
-  DashboardShell (kept at bottom to avoid hoist confusion)
-========================================================= */
+            {isApoio && tabApoio === "home" && <SupportDashboard />}
+          </main>
 
-function DashboardShell({ children }) {
-  return (
-    <div className="min-h-screen" style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}>
-      {children}
-    </div>
-  );
+          {/* Mobile Bottom Nav */}
+          <nav
+            className="md:hidden fixed bottom-6 left-6 right-6 h-20 flex items-center justify-around px-4 z-50"
+            style={{
+              background: "rgba(255,255,255,0.82)",
+              border: `1px solid ${Tokens.colors.border}`,
+              borderRadius: "32px",
+              backdropFilter: "blur(18px)",
+              boxShadow: Tokens.shadow.md,
+            }}
+          >
+            {(role === "paciente"
+              ? [
+                  { id: "home", icon: Activity },
+                  { id: "calendar", icon: Calendar },
+                  { id: "history", icon: FileCheck },
+                  { id: "access", icon: Shield },
+                ]
+              : role === "medico"
+              ? [
+                  { id: "patients", icon: ClipboardList },
+                  { id: "calendar", icon: Calendar },
+                ]
+              : [{ id: "home", icon: Activity }]
+            ).map((it) => {
+              const active = currentTabId === it.id;
+              return (
+                <button
+                  key={it.id}
+                  onClick={() => setTab(it.id)}
+                  className="p-3 rounded-2xl transition-all"
+                  style={{
+                    background: active ? Tokens.colors.primary : "transparent",
+                    color: active ? "white" : Tokens.colors.text.secondary,
+                  }}
+                >
+                  <it.icon size={24} />
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Back Sheet (fixed back button options) */}
+          {showBackSheet && (
+            <div className="fixed inset-0 z-[80]">
+              <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} onClick={() => setShowBackSheet(false)} />
+              <div
+                className="absolute left-0 right-0 bottom-0 p-6"
+                style={{
+                  background: "rgba(255,255,255,0.92)",
+                  borderTop: `1px solid ${Tokens.colors.border}`,
+                  borderTopLeftRadius: "28px",
+                  borderTopRightRadius: "28px",
+                  backdropFilter: "blur(18px)",
+                  boxShadow: Tokens.shadow.md,
+                }}
+              >
+                <div className="max-w-lg mx-auto space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[14px] font-black">Voltar</div>
+                    <button
+                      onClick={() => setShowBackSheet(false)}
+                      className="p-2 rounded-2xl"
+                      style={{ background: Tokens.colors.background, color: Tokens.colors.text.secondary }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button variant="secondary" icon={Users} onClick={() => applyBackAction("switchRole")} className="w-full">
+                      Voltar e escolher perfil (Paciente / Médico / Rede)
+                    </Button>
+
+                    <Button variant="secondary" icon={Pencil} onClick={() => applyBackAction("toProfileUpdate")} className="w-full">
+                      Ir para atualização de cadastro
+                    </Button>
+
+                    <Button variant="destructive" icon={ChevronLeft} onClick={() => applyBackAction("toAuth")} className="w-full">
+                      Voltar para login
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /* ------------------------------ 8) ROOT RENDER ------------------------------ */
+
+  if (view === "auth") return <AuthScreen />;
+  if (view === "forgot") return <ForgotScreen />;
+  return <Dashboard />;
 }
