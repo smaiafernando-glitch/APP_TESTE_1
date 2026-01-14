@@ -30,7 +30,13 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
   </div>
 );
 
-const Badge = ({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "info" }) => {
+const Badge = ({
+  children,
+  variant = "default"
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "success" | "warning" | "danger" | "info";
+}) => {
   const styles: Record<string, string> = {
     default: "bg-blue-50 text-blue-600",
     success: "bg-emerald-50 text-emerald-600",
@@ -72,6 +78,8 @@ const ProgressBar = ({ value = 95 }: { value?: number }) => (
   </div>
 );
 
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
 // --- Aplicação Principal ---
 
 export default function App() {
@@ -80,6 +88,9 @@ export default function App() {
   const [signupStep, setSignupStep] = useState(1);
   const [activeTab, setActiveTab] = useState<'home' | 'network' | 'history'>('home');
   const [showLegalNotice, setShowLegalNotice] = useState(true);
+
+  // Disposição (0 a 10)
+  const [disposicao, setDisposicao] = useState<number>(7);
 
   // Mock de Dados de Tratamento
   const [treatments] = useState([
@@ -125,7 +136,6 @@ export default function App() {
           </button>
 
           <Card className="relative overflow-hidden">
-            {/* Progress Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-100 flex">
               {[1, 2, 3, 4].map(step => (
                 <div
@@ -244,6 +254,46 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* Disposição (0 a 10) */}
+      <section>
+        <Card className="border-blue-50">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-black text-slate-800 text-sm mb-1">Como está sua disposição hoje?</h3>
+              <p className="text-[10px] text-slate-400 italic">
+                0 = muito indisposto • 10 = muito disposto
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase">Nota</p>
+              <p className="text-2xl font-black text-blue-600 leading-none">{disposicao}</p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={disposicao}
+              onChange={(e) => setDisposicao(clamp(Number(e.target.value), 0, 10))}
+              className="w-full"
+            />
+            <div className="flex justify-between mt-2">
+              <span className="text-[10px] font-black text-slate-300">0</span>
+              <span className="text-[10px] font-black text-slate-300">10</span>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button className="px-5 py-2 bg-blue-600 text-white text-xs font-black rounded-lg shadow-md">
+              Salvar disposição
+            </button>
+          </div>
+        </Card>
+      </section>
 
       {/* Gráficos (mock) */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -397,7 +447,8 @@ export default function App() {
           </div>
 
           <Card className="space-y-4">
-            <h2 className="text-xl font-black text-center text-slate-800 mb-6">Aceder à conta</h2>
+            {/* ALTERADO AQUI */}
+            <h2 className="text-xl font-black text-center text-slate-800 mb-6">Acessar conta</h2>
 
             <div className="space-y-3">
               <button onClick={() => handleLogin('paciente')} className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-blue-500 transition-all text-left">
@@ -523,7 +574,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Botão "Voltar ao Home" (desktop) */}
         {activeTab !== 'home' && (
           <button
             onClick={() => setActiveTab('home')}
