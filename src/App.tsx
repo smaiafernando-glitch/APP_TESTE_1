@@ -1,458 +1,546 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react';
 import {
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  Camera,
-  CheckCircle,
-  ChevronLeft,
-  FileCheck,
   Heart,
-  History,
-  Plus,
-  Upload,
   User,
+  Activity,
+  Plus,
+  CheckCircle,
   Users,
-} from "lucide-react";
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  Upload,
+  Smile,
+  AlertTriangle,
+  FileCheck,
+  Clock,
+  Calendar,
+  Settings,
+  Shield,
+  Stethoscope,
+  Link as LinkIcon,
+  X
+} from 'lucide-react';
 
-/** -------------------------
- *  Componentes UI simples
- *  ------------------------- */
-const Card = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={`bg-white rounded-2xl shadow-sm border border-slate-100 p-6 ${className}`}
-  >
+// --- Componentes de UI Auxiliares ---
+
+const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-white rounded-2xl shadow-sm border border-slate-100 p-6 ${className}`}>
     {children}
   </div>
 );
 
-const Badge = ({
-  children,
-  variant = "default",
-}: {
-  children: React.ReactNode;
-  variant?: "default" | "success" | "warning" | "danger" | "info";
-}) => {
-  const styles: Record<string, string> = {
+const Badge = ({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "info" }) => {
+  const styles = {
     default: "bg-blue-50 text-blue-600",
     success: "bg-emerald-50 text-emerald-600",
     warning: "bg-amber-50 text-amber-600",
     danger: "bg-rose-50 text-rose-600",
-    info: "bg-purple-50 text-purple-600",
+    info: "bg-purple-50 text-purple-600"
   };
-
   return (
-    <span
-      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-        styles[variant] ?? styles.default
-      }`}
-    >
+    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${styles[variant]}`}>
       {children}
     </span>
   );
 };
 
-/** -------------------------
- *  Gráfico simulado (SVG)
- *  ------------------------- */
-const SimpleLineChart = () => {
-  const series = useMemo(() => [40, 70, 45, 90, 65, 80, 95], []);
+// --- Gráficos (simulados e declaratórios) ---
+
+function SimpleMoodBars({ values }: { values: number[] }) {
+  // values: 1..5 (auto-relato)
+  const max = 5;
   return (
-    <div className="w-full h-32 flex items-end justify-between px-2 pt-4">
-      {series.map((height, i) => (
-        <div key={i} className="flex flex-col items-center flex-1 group">
-          <div
-            style={{ height: `${height}%` }}
-            className="w-full max-w-[8px] bg-blue-100 rounded-full relative group-hover:bg-blue-500 transition-all duration-300"
-          >
-            {i === series.length - 1 && (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-600 rounded-full border-2 border-white" />
-            )}
-          </div>
-          <span className="text-[8px] text-slate-300 mt-2 font-bold uppercase">
-            Dia {i + 1}
-          </span>
-        </div>
-      ))}
+    <div className="mt-4">
+      <div className="flex items-end gap-2 h-24">
+        {values.map((v, i) => {
+          const h = Math.max(10, Math.round((v / max) * 100));
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center">
+              <div className="w-full max-w-[14px] bg-blue-100 rounded-full overflow-hidden">
+                <div style={{ height: `${h}%` }} className="w-full bg-blue-600 rounded-full" />
+              </div>
+              <span className="text-[9px] text-slate-300 mt-2 font-black uppercase">D{i + 1}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between mt-3 text-[10px] font-bold">
+        <span className="text-slate-400">Baixo</span>
+        <span className="text-slate-400">Alto</span>
+      </div>
     </div>
   );
-};
+}
 
-/** -------------------------
- *  App
- *  ------------------------- */
-type Role = "paciente" | "acompanhante";
-type View = "login" | "signup_paciente" | "signup_apoio";
-type Tab = "dashboard" | "network";
+function AdherenceMiniBars({ taken, total }: { taken: number; total: number }) {
+  // Mini barras para visualizar aderência por “blocos”
+  const blocks = 14;
+  const ratio = total === 0 ? 0 : taken / total;
+  const filled = Math.round(blocks * ratio);
+
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-14 gap-1">
+        {Array.from({ length: blocks }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-3 rounded ${i < filled ? 'bg-emerald-500' : 'bg-slate-100'}`}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between mt-3 text-[10px] font-bold">
+        <span className="text-slate-400">0%</span>
+        <span className="text-slate-400">100%</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Aplicação Principal ---
+
+type Role = 'paciente' | 'apoio' | 'medico';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [view, setView] = useState<View>("login");
+  const [view, setView] = useState<'login' | 'signup' | 'dashboard'>('login');
   const [userRole, setUserRole] = useState<Role | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const [signupStep, setSignupStep] = useState(1);
+  const [activeTab, setActiveTab] = useState<'home' | 'network' | 'history'>('home');
+  const [showLegalNotice, setShowLegalNotice] = useState(true);
+
+  // Auto-relato (simulado)
+  const [dailyNote, setDailyNote] = useState("");
+  const [moodValues] = useState<number[]>([3, 4, 3, 5, 4, 4, 5]); // 7 dias - auto relato 1..5
+
+  // Mock de Dados de Tratamento
+  const [treatments] = useState([
+    { id: 1, name: 'Losartana', dose: '50mg', time: '08:00', status: 'tomado' as const, obs: 'Tomar em jejum' },
+    { id: 2, name: 'Anlodipino', dose: '5mg', time: '20:00', status: 'pendente' as const, obs: '' },
+  ]);
+
+  const adherence = useMemo(() => {
+    // Simulação de aderência: conta quantos estão tomados hoje
+    const total = treatments.length;
+    const taken = treatments.filter(t => t.status === 'tomado').length;
+    const pct = total === 0 ? 0 : Math.round((taken / total) * 100);
+    return { total, taken, pct };
+  }, [treatments]);
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
     setUserRole(null);
-    setView("login");
-    setActiveTab("dashboard");
+    setView('login');
+    setSignupStep(1);
+    setActiveTab('home');
   };
 
   const handleLogin = (role: Role) => {
     setUserRole(role);
-    setIsLoggedIn(true);
-    setActiveTab("dashboard");
+    setView('dashboard');
   };
 
-  const todayLabel = useMemo(() => {
-    try {
-      const d = new Date();
-      const opt: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
-      return d.toLocaleDateString("pt-BR", opt);
-    } catch {
-      return "Hoje";
-    }
-  }, []);
+  // --- Componente de Aviso Legal ---
+  const LegalBanner = () => (
+    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start space-x-3">
+      <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />
+      <div className="text-[11px] text-amber-800 leading-relaxed font-medium">
+        <p className="font-black mb-1 uppercase">Aviso Legal:</p>
+        Este aplicativo é uma ferramenta de organização pessoal. As informações são fornecidas pelo próprio usuário.
+        O app <strong>não realiza diagnósticos, não substitui avaliação médica</strong> e não deve ser utilizado para decisões clínicas.
+      </div>
+    </div>
+  );
 
-  /** -------------------------
-   *  Login / Cadastro
-   *  ------------------------- */
-  if (!isLoggedIn) {
-    if (view === "login") {
-      return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-          <div className="max-w-md w-full">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center bg-blue-600 p-4 rounded-3xl shadow-xl shadow-blue-200 mb-4">
-                <Heart className="text-white" size={40} fill="currentColor" />
-              </div>
-              <h1 className="text-3xl font-black text-slate-800 italic">
-                VitaFlow
-              </h1>
-              <p className="text-slate-500 font-medium tracking-tight text-sm">
-                Organização e cuidado compartilhado.
-              </p>
+  // --- Fluxo de Cadastro em Etapas ---
+  const renderSignup = () => {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-xl w-full">
+          <button
+            onClick={() => setView('login')}
+            className="mb-4 flex items-center text-sm font-black text-slate-400 hover:text-blue-600 transition-colors"
+          >
+            <ChevronLeft size={18} /> Cancelar Cadastro
+          </button>
+
+          <Card className="relative overflow-hidden">
+            {/* Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-100 flex">
+              {[1, 2, 3, 4].map(step => (
+                <div
+                  key={step}
+                  className={`flex-1 transition-all duration-500 ${signupStep >= step ? 'bg-blue-600' : 'bg-transparent'}`}
+                />
+              ))}
             </div>
 
-            <Card className="space-y-4">
-              <h2 className="text-xl font-bold text-center text-slate-800 mb-6">
-                Acessar conta
-              </h2>
+            <div className="mt-4">
+              <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Passo {signupStep} de 4</p>
 
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleLogin("paciente")}
-                  className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-blue-500 transition-all"
-                >
-                  <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
-                    <User size={20} />
+              {signupStep === 1 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-black text-slate-800">Dados Básicos</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" placeholder="Nome Completo" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="text" placeholder="CPF" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="date" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="tel" placeholder="Telefone" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="text" placeholder="Endereço" className="w-full p-3 rounded-xl bg-slate-50 text-sm col-span-full" />
+                    <input type="text" placeholder="Contato de Emergência" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <select className="w-full p-3 rounded-xl bg-slate-50 text-sm">
+                      <option>Estado Civil</option>
+                      <option>Solteiro(a)</option>
+                      <option>Casado(a)</option>
+                      <option>Divorciado(a)</option>
+                      <option>Viúvo(a)</option>
+                    </select>
                   </div>
-                  <span className="font-bold text-slate-700">
-                    Entrar como Paciente
-                  </span>
-                </button>
+                </div>
+              )}
 
-                <button
-                  onClick={() => handleLogin("acompanhante")}
-                  className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-purple-500 transition-all"
-                >
-                  <div className="bg-purple-50 p-2 rounded-lg text-purple-600">
-                    <Users size={20} />
+              {signupStep === 2 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-black text-slate-800">Dados de Rotina</h2>
+                  <p className="text-xs text-slate-400">Informações declaratórias para auxílio na organização.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="Peso (kg)" className="p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="text" placeholder="Altura (cm)" className="p-3 rounded-xl bg-slate-50 text-sm" />
+                    <input type="text" placeholder="Profissão" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <textarea placeholder="Horários habituais (sono, alimentação, trabalho...)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-24" />
+                    <textarea placeholder="Hábitos de vida (ex: caminhada 3x/semana)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-20" />
                   </div>
-                  <span className="font-bold text-slate-700">
-                    Entrar como Rede de Apoio
-                  </span>
+                </div>
+              )}
+
+              {signupStep === 3 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-black text-slate-800">Informações de Saúde</h2>
+                  <p className="text-[10px] text-amber-600 font-black bg-amber-50 p-2 rounded-lg uppercase">
+                    Apenas texto simples • Sem validação clínica
+                  </p>
+                  <div className="space-y-4">
+                    <textarea
+                      placeholder="Condições pré-existentes e doenças crônicas (auto declaradas)"
+                      className="w-full p-3 rounded-xl bg-slate-50 text-sm h-24"
+                    />
+                    <textarea
+                      placeholder="Uso contínuo de medicamentos (auto declarado)"
+                      className="w-full p-3 rounded-xl bg-slate-50 text-sm h-20"
+                    />
+                    <input type="text" placeholder="Alergias conhecidas" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                  </div>
+                </div>
+              )}
+
+              {signupStep === 4 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-black text-slate-800">Rede de Apoio</h2>
+                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded">Opcional</span>
+                  </div>
+                  <p className="text-xs text-slate-500">Pessoas que poderão visualizar sua agenda e registros (conforme permissões).</p>
+                  <div className="space-y-3">
+                    <input type="text" placeholder="Nome do contato" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                    <select className="w-full p-3 rounded-xl bg-slate-50 text-sm">
+                      <option>Grau de Relação</option>
+                      <option>Filho(a)</option>
+                      <option>Cônjuge</option>
+                      <option>Cuidador Profissional</option>
+                      <option>Outro Familiar</option>
+                    </select>
+                    <input type="email" placeholder="E-mail para convite" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between mt-8">
+                {signupStep > 1 && (
+                  <button onClick={() => setSignupStep(s => s - 1)} className="px-6 py-3 font-black text-slate-400 text-sm">
+                    Anterior
+                  </button>
+                )}
+                <div className="flex-1"></div>
+                <button
+                  onClick={() => (signupStep < 4 ? setSignupStep(s => s + 1) : handleLogin('paciente'))}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-100 flex items-center"
+                >
+                  {signupStep === 4 ? 'Concluir' : 'Próximo'} <ChevronRight size={16} className="ml-1" />
                 </button>
               </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  };
 
-              <div className="relative py-4 flex items-center">
-                <div className="flex-grow border-t border-slate-100" />
-                <span className="flex-shrink mx-4 text-xs font-bold text-slate-300 uppercase">
-                  Ou cadastre-se
-                </span>
-                <div className="flex-grow border-t border-slate-100" />
-              </div>
+  // --- Telas de Dashboard ---
 
-              <div className="grid grid-cols-2 gap-3">
+  const renderHome = () => (
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800">Olá, Ricardo</h2>
+          <p className="text-slate-500 text-sm italic">Como você está hoje?</p>
+        </div>
+        <div className="flex space-x-2">
+          <button className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-black flex items-center text-slate-600">
+            <Calendar size={14} className="mr-2" /> Agenda
+          </button>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center shadow-lg shadow-blue-100">
+            <Plus size={14} className="mr-2" /> Novo Registro
+          </button>
+        </div>
+      </header>
+
+      {/* Gráficos - Evolução (auto-relato) e Organização */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border border-slate-100">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Evolução do Bem-estar</p>
+              <p className="text-sm font-black text-slate-800 mt-1">Auto-relato (últimos 7 dias)</p>
+            </div>
+            <Badge variant="info">Declaratório</Badge>
+          </div>
+
+          <p className="text-[10px] text-slate-400 mt-2 italic">
+            Visual apenas organizacional. Sem interpretação médica automática.
+          </p>
+
+          <SimpleMoodBars values={moodValues} />
+        </Card>
+
+        <Card className="border border-slate-100">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Organização da Rotina</p>
+              <p className="text-sm font-black text-slate-800 mt-1">Aderência de hoje</p>
+            </div>
+            <Badge variant={adherence.pct >= 80 ? "success" : adherence.pct >= 50 ? "warning" : "danger"}>
+              {adherence.pct}%
+            </Badge>
+          </div>
+
+          <div className="mt-4">
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div className="bg-emerald-500 h-full" style={{ width: `${adherence.pct}%` }} />
+            </div>
+            <div className="flex justify-between mt-2 text-[10px] font-black">
+              <span className="text-slate-400">Tomados: {adherence.taken}/{adherence.total}</span>
+              <span className="text-emerald-600">{adherence.pct >= 80 ? "Bom ritmo" : "Ajustar rotina"}</span>
+            </div>
+          </div>
+
+          <AdherenceMiniBars taken={adherence.taken} total={adherence.total} />
+        </Card>
+      </section>
+
+      {/* Registro de Evolução (Auto Relato) */}
+      <section>
+        <Card>
+          <h3 className="font-black text-slate-800 flex items-center mb-4">
+            <Smile size={18} className="mr-2 text-blue-500" /> Meu Relato do Dia
+          </h3>
+          <p className="text-[10px] text-slate-400 mb-3 italic">
+            Escreva em linguagem simples como se sente. Sem análises médicas automáticas.
+          </p>
+          <textarea
+            value={dailyNote}
+            onChange={(e) => setDailyNote(e.target.value)}
+            className="w-full p-4 bg-slate-50 rounded-xl border-none text-sm min-h-[100px] resize-none focus:ring-2 focus:ring-blue-100"
+            placeholder="Ex: Hoje me senti cansado à tarde, mas dormi bem."
+          />
+          <div className="flex justify-end mt-3">
+            <button className="px-5 py-2 bg-blue-600 text-white text-xs font-black rounded-lg shadow-md">
+              Salvar Relato
+            </button>
+          </div>
+        </Card>
+      </section>
+
+      {/* Tratamentos Atuais */}
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-black text-slate-800">Tratamentos Atuais</h3>
+          <Badge>Apenas Organizacional</Badge>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {treatments.map(t => (
+            <Card
+              key={t.id}
+              className={`border-l-4 ${t.status === 'tomado' ? 'border-emerald-500' : 'border-amber-500'}`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <Clock size={12} className="text-slate-400" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{t.time}</span>
+                  </div>
+                  <h4 className="font-black text-slate-800">{t.name}</h4>
+                  <p className="text-xs text-slate-500 font-medium">Dose: {t.dose}</p>
+                  {t.obs && <p className="text-[10px] bg-slate-50 p-1.5 rounded inline-block text-slate-600">⚠️ {t.obs}</p>}
+                </div>
                 <button
-                  onClick={() => setView("signup_paciente")}
-                  className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-blue-50 transition-all"
+                  className={`p-2 rounded-full ${t.status === 'tomado'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-slate-50 text-slate-300 border border-slate-100'
+                    }`}
+                  aria-label={t.status === 'tomado' ? 'Tomado' : 'Marcar como tomado'}
                 >
-                  <Plus size={20} className="mb-2 text-blue-600" />
-                  <span className="text-xs font-bold">Novo Paciente</span>
-                </button>
-
-                <button
-                  onClick={() => setView("signup_apoio")}
-                  className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-purple-50 transition-all"
-                >
-                  <Plus size={20} className="mb-2 text-purple-600" />
-                  <span className="text-xs font-bold">Nova Rede de Apoio</span>
+                  {t.status === 'tomado' ? <CheckCircle size={18} /> : <Plus size={18} />}
                 </button>
               </div>
             </Card>
-          </div>
+          ))}
         </div>
-      );
-    }
+      </section>
 
-    // Cadastro
-    const isPaciente = view === "signup_paciente";
+      {/* Receitas Médicas */}
+      <section>
+        <h3 className="font-black text-slate-800 mb-4">Minhas Receitas (Referência)</h3>
+        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center p-8 text-center">
+          <div className="bg-white p-4 rounded-full shadow-sm mb-4 text-slate-400">
+            <Camera size={28} />
+          </div>
+          <p className="font-black text-slate-700 text-xs mb-1">Upload de Foto da Receita</p>
+          <p className="text-[10px] text-slate-400 max-w-xs mb-4 italic">
+            Este app não interpreta receitas médicas e não substitui orientação profissional.
+          </p>
+          <button className="px-5 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black hover:bg-slate-50 transition-all flex items-center">
+            <Upload size={12} className="mr-2" /> Selecionar Arquivo
+          </button>
+        </Card>
+      </section>
+    </div>
+  );
 
+  const renderNetwork = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800">Rede de Apoio</h2>
+          <p className="text-sm text-slate-500 italic">Quem cuida de você.</p>
+        </div>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center shadow-lg shadow-blue-100">
+          <Plus size={14} className="mr-2" /> Convidar
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black">MF</div>
+          <div className="flex-1">
+            <h4 className="font-black text-slate-800">Maria Fernanda</h4>
+            <p className="text-xs text-slate-400">Filha • Acesso Completo</p>
+          </div>
+          <button className="text-slate-300" aria-label="Configurar acesso"><Settings size={18} /></button>
+        </Card>
+
+        <Card className="border-dashed border-2 border-slate-100 flex flex-col items-center justify-center p-6 text-center">
+          <LinkIcon size={24} className="text-slate-200 mb-2" />
+          <p className="text-xs font-black text-slate-400">Enviar link de convite por WhatsApp</p>
+        </Card>
+      </div>
+
+      {/* Gestão de Acessos */}
+      <Card>
+        <h3 className="font-black text-slate-800 mb-4 text-sm flex items-center">
+          <Shield size={16} className="mr-2 text-blue-500" /> Gestão de Acessos de Rede
+        </h3>
+        <div className="space-y-4">
+          {['Visualizar Agenda', 'Receber Alertas de Atraso', 'Visualizar Relatos Diários', 'Consultar Histórico de Receitas'].map((perm, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+              <span className="text-xs font-medium text-slate-600">{perm}</span>
+              <div className="w-10 h-5 bg-blue-100 rounded-full relative flex items-center px-1">
+                <div className="w-3.5 h-3.5 bg-blue-600 rounded-full translate-x-4"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+
+  // --- Renderização de Login / Onboarding ---
+
+  if (view === 'login') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full">
-          <button
-            onClick={() => setView("login")}
-            className="mb-6 flex items-center text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
-          >
-            <ChevronLeft size={18} className="mr-1" /> Voltar ao Login
-          </button>
-
-          <Card className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-slate-800">
-                Criar Nova Conta
-              </h2>
-              <p className="text-sm text-slate-400">
-                {isPaciente ? "Cadastro para Paciente" : "Cadastro para Rede de Apoio"}
-              </p>
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center bg-blue-600 p-4 rounded-3xl shadow-xl shadow-blue-200 mb-4">
+              <Heart className="text-white" size={40} fill="currentColor" />
             </div>
+            <h1 className="text-3xl font-black text-slate-800 italic tracking-tighter">VitaFlow</h1>
+            <p className="text-slate-500 font-medium tracking-tight text-sm">Organização declaratória e compartilhada.</p>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase ml-1">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  placeholder="seu@email.com"
-                  className="w-full p-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-500 mt-1"
-                />
-              </div>
+          <Card className="space-y-4">
+            <h2 className="text-xl font-black text-center text-slate-800 mb-6">Aceder à conta</h2>
 
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase ml-1">
-                  Senha
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full p-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-500 mt-1"
-                />
-              </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleLogin('paciente')}
+                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-blue-500 transition-all text-left"
+              >
+                <div className="bg-blue-50 p-2 rounded-lg text-blue-600"><User size={20} /></div>
+                <div>
+                  <span className="font-black text-slate-800 block">Sou Paciente</span>
+                  <span className="text-[10px] text-slate-400">Gerir minha rotina e rede de apoio</span>
+                </div>
+              </button>
 
               <button
-                onClick={() => handleLogin(isPaciente ? "paciente" : "acompanhante")}
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+                onClick={() => handleLogin('apoio')}
+                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-purple-500 transition-all text-left"
               >
-                Concluir Cadastro
+                <div className="bg-purple-50 p-2 rounded-lg text-purple-600"><Users size={20} /></div>
+                <div>
+                  <span className="font-black text-slate-800 block">Sou Rede de Apoio</span>
+                  <span className="text-[10px] text-slate-400">Acompanhar um familiar ou paciente</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleLogin('medico')}
+                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-emerald-500 transition-all text-left"
+              >
+                <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600"><Stethoscope size={20} /></div>
+                <div>
+                  <span className="font-black text-slate-800 block">Sou Médico</span>
+                  <span className="text-[10px] text-slate-400">Visualizar informações autorizadas</span>
+                </div>
               </button>
             </div>
+
+            <div className="relative py-4 flex items-center">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-4 text-[10px] font-black text-slate-300 uppercase">Novo por aqui?</span>
+              <div className="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            <button
+              onClick={() => setView('signup')}
+              className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all"
+            >
+              Criar Conta de Paciente
+            </button>
           </Card>
+
+          <div className="mt-8">
+            <LegalBanner />
+          </div>
         </div>
       </div>
     );
   }
 
-  /** -------------------------
-   *  Dashboard
-   *  ------------------------- */
-  const renderDashboard = () => {
-    return (
-      <div className="space-y-8">
-        {/* Banner Legal/Safety */}
-        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start space-x-3">
-          <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />
-          <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-            <strong>Atenção:</strong> Este aplicativo é uma ferramenta de organização pessoal.
-            As informações são registradas por você. O app{" "}
-            <strong>não realiza diagnósticos, não interpreta sintomas e não substitui</strong>{" "}
-            a orientação do seu médico.
-          </p>
-        </div>
+  if (view === 'signup') {
+    return renderSignup();
+  }
 
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">Olá!</h2>
-            <p className="text-slate-500 text-sm italic">
-              “Como você está se sentindo hoje?”
-            </p>
-          </div>
+  // --- Renderização do Painel (Dashboard) ---
 
-          <div className="flex space-x-2">
-            <button className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center text-slate-600">
-              <History size={14} className="mr-2" /> Histórico
-            </button>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center shadow-lg shadow-blue-100">
-              <Plus size={14} className="mr-2" /> Novo Registro
-            </button>
-          </div>
-        </header>
-
-        {/* Relato do dia */}
-        <section>
-          <Card className="bg-white border-blue-50 shadow-md">
-            <h3 className="font-bold text-slate-800 flex items-center mb-4">
-              <span className="inline-flex items-center justify-center mr-2 text-blue-500">
-                {/* usando o Heart como ícone pequeno para manter imports simples */}
-                <Heart size={18} />
-              </span>
-              Meu Relato do Dia
-            </h3>
-
-            <div className="space-y-4">
-              <p className="text-sm text-slate-600 font-medium">
-                Escreva como foi o seu dia, em suas palavras (sem termos médicos):
-              </p>
-
-              <textarea
-                className="w-full p-4 bg-slate-50 rounded-xl border-none text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-100 min-h-[100px] resize-none"
-                placeholder="Ex: Hoje senti cansaço à tarde, mas dormi bem…"
-              />
-
-              <div className="flex justify-end">
-                <button className="px-6 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-colors">
-                  Salvar Relato
-                </button>
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* “Gráficos” de evolução (auto-relato visual) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Meu Bem-estar
-                </h4>
-                <p className="text-2xl font-black text-slate-800">Ótimo</p>
-              </div>
-              <Badge variant="success">Tendência ↑</Badge>
-            </div>
-            <p className="text-[10px] text-slate-400 mb-4 italic">
-              Auto-relato dos últimos 7 dias
-            </p>
-            <SimpleLineChart />
-          </Card>
-
-          <Card>
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Frequência de Registro
-                </h4>
-                <p className="text-2xl font-black text-slate-800">95%</p>
-              </div>
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <BarChart3 size={20} />
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-400 mb-4 italic">
-              Assiduidade na organização
-            </p>
-
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-8">
-              <div className="bg-blue-500 h-full w-[95%]" />
-            </div>
-
-            <div className="flex justify-between mt-2">
-              <span className="text-[10px] font-bold text-slate-400">
-                Objetivo: 100%
-              </span>
-              <span className="text-[10px] font-bold text-blue-600">
-                Quase lá!
-              </span>
-            </div>
-          </Card>
-        </section>
-
-        {/* Medicações */}
-        <section>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800">Agenda de Medicações</h3>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">
-              Hoje, {todayLabel}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/20">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">
-                    Tomado às 08:05
-                  </p>
-                  <h4 className="font-bold text-slate-800">Losartana</h4>
-                  <p className="text-xs text-slate-500">
-                    1 comprimido • 08:00
-                  </p>
-                </div>
-                <div className="p-2 bg-emerald-500 text-white rounded-full">
-                  <CheckCircle size={16} />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="border-l-4 border-l-amber-500">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-black text-amber-600 uppercase">
-                    Agendado
-                  </p>
-                  <h4 className="font-bold text-slate-800">Anlodipino</h4>
-                  <p className="text-xs text-slate-500">
-                    1 comprimido • 20:00
-                  </p>
-                </div>
-                <button className="p-2 bg-white border border-slate-100 text-slate-300 rounded-full hover:bg-slate-50">
-                  <Plus size={16} />
-                </button>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* Receitas (referência) */}
-        <section>
-          <h3 className="font-bold text-slate-800 mb-4">
-            Minhas Receitas (Referência)
-          </h3>
-
-          <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center p-8">
-            <div className="bg-white p-4 rounded-full shadow-sm mb-4 text-slate-400">
-              <Camera size={28} />
-            </div>
-
-            <p className="font-bold text-slate-700 text-xs">
-              Fotografar/Salvar Receita do Médico
-            </p>
-
-            <p className="text-[10px] text-slate-400 mt-2 text-center max-w-[280px]">
-              Apenas para consulta pessoal. O app não interpreta nem sugere tratamentos.
-            </p>
-
-            <button className="mt-4 px-5 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold hover:bg-slate-50 transition-all flex items-center">
-              <Upload size={12} className="mr-2" /> Carregar Imagem
-            </button>
-          </Card>
-        </section>
-      </div>
-    );
-  };
-
-  /** -------------------------
-   *  Layout
-   *  ------------------------- */
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
       {/* Sidebar Desktop */}
@@ -461,123 +549,110 @@ export default function App() {
           <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
             <Heart className="text-white" size={24} fill="currentColor" />
           </div>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight italic">
-            VitaFlow
-          </h1>
+          <h1 className="text-xl font-black text-slate-800 tracking-tight italic">VitaFlow</h1>
         </div>
 
         <nav className="flex-1 space-y-1">
           <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-all ${
-              activeTab === "dashboard"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-slate-500 hover:bg-slate-50"
-            }`}
+            onClick={() => setActiveTab('home')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'home'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+              : 'text-slate-500 hover:bg-slate-50'
+              }`}
           >
             <Activity size={20} /> <span className="text-sm">Painel Principal</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("network")}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-all ${
-              activeTab === "network"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-slate-500 hover:bg-slate-50"
-            }`}
+            onClick={() => setActiveTab('network')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'network'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+              : 'text-slate-500 hover:bg-slate-50'
+              }`}
           >
             <Users size={20} /> <span className="text-sm">Rede de Apoio</span>
           </button>
 
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-slate-500 hover:bg-slate-50">
-            <FileCheck size={20} /> <span className="text-sm">Minhas Receitas</span>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'history'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+              : 'text-slate-500 hover:bg-slate-50'
+              }`}
+          >
+            <FileCheck size={20} /> <span className="text-sm">Meu Histórico</span>
           </button>
 
           <div className="pt-8 mt-8 border-t border-slate-50">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-rose-500 hover:bg-rose-50 transition-all"
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black text-rose-500 hover:bg-rose-50 transition-all"
             >
-              <ChevronLeft size={20} /> <span className="text-sm">Voltar ao Início</span>
+              <ChevronLeft size={20} /> <span className="text-sm">Sair da Conta</span>
             </button>
           </div>
         </nav>
 
         <div className="mt-auto pt-6 border-t border-slate-50 flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-slate-100 border flex items-center justify-center font-bold text-slate-400 text-xs uppercase">
-            {userRole?.[0] ?? "U"}
+          <div className="w-8 h-8 rounded-full bg-slate-100 border flex items-center justify-center font-black text-slate-400 text-xs uppercase">
+            {userRole?.[0] ?? 'U'}
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase leading-none">
-              Acesso
-            </p>
-            <p className="text-xs font-bold text-slate-800 capitalize leading-none">
-              {userRole ?? "usuário"}
-            </p>
+            <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Perfil Ativo</p>
+            <p className="text-xs font-black text-slate-800 capitalize leading-none">{userRole ?? '—'}</p>
           </div>
         </div>
       </aside>
 
-      {/* Header Mobile */}
-      <div className="md:hidden bg-white border-b border-slate-100 p-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <Heart className="text-blue-600" size={20} fill="currentColor" />
-          <span className="font-black italic text-slate-800">VitaFlow</span>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-rose-500 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-xl"
-        >
-          Sair
-        </button>
-      </div>
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-10 pb-24 max-w-5xl mx-auto w-full">
+        {showLegalNotice && (
+          <div className="mb-8 relative">
+            <LegalBanner />
+            <button
+              onClick={() => setShowLegalNotice(false)}
+              className="absolute top-2 right-2 p-1 text-amber-400 hover:text-amber-600"
+              aria-label="Fechar aviso"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
-      {/* Conteúdo */}
-      <main className="flex-1 p-6 md:p-10 pb-24 md:pb-10 max-w-5xl mx-auto w-full overflow-y-auto">
-        {activeTab === "dashboard" ? (
-          renderDashboard()
-        ) : (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-800">Rede de Apoio</h2>
-            <p className="text-sm text-slate-500 italic">
-              Cuidadores e familiares autorizados por você.
-            </p>
-
-            <Card className="text-center p-12 bg-slate-50 border-dashed border-2">
-              <Users className="mx-auto text-slate-200 mb-4" size={48} />
-              <p className="font-bold text-slate-700">Ninguém vinculado ainda</p>
-              <p className="text-xs text-slate-400 mt-2">
-                Compartilhe sua organização com quem você confia.
-              </p>
-              <button className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-100">
-                Convidar Acompanhante
-              </button>
-            </Card>
+        {activeTab === 'home' && renderHome()}
+        {activeTab === 'network' && renderNetwork()}
+        {activeTab === 'history' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-black text-slate-800">Meu Histórico</h2>
+            <p className="text-sm text-slate-500 italic mb-6">Linha do tempo organizacional de relatos e ações.</p>
+            {[1, 2, 3].map(day => (
+              <Card key={day} className="border-l-4 border-l-slate-200">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-2">1{day} de Janeiro, 2026</p>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 text-xs">
+                    <CheckCircle size={14} className="text-emerald-500" />
+                    <span className="text-slate-600">Medicação Tomada: Losartana (08:05)</span>
+                  </div>
+                  <div className="flex items-start space-x-3 text-xs">
+                    <Smile size={14} className="text-blue-500 mt-0.5" />
+                    <span className="text-slate-500 italic">"Relato: Senti um pouco de tontura ao levantar, mas passou rápido."</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </main>
 
-      {/* Nav Mobile */}
+      {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 py-3 flex justify-around items-center shadow-lg">
-        <button
-          onClick={() => setActiveTab("dashboard")}
-          className={`p-3 rounded-2xl ${
-            activeTab === "dashboard" ? "bg-blue-600 text-white" : "text-slate-400"
-          }`}
-        >
+        <button onClick={() => setActiveTab('home')} className={`p-3 rounded-2xl ${activeTab === 'home' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
           <Activity size={20} />
         </button>
-
-        <button
-          onClick={() => setActiveTab("network")}
-          className={`p-3 rounded-2xl ${
-            activeTab === "network" ? "bg-blue-600 text-white" : "text-slate-400"
-          }`}
-        >
+        <button onClick={() => setActiveTab('network')} className={`p-3 rounded-2xl ${activeTab === 'network' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
           <Users size={20} />
         </button>
-
-        <button className="p-3 text-slate-400">
+        <button onClick={() => setActiveTab('history')} className={`p-3 rounded-2xl ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
           <FileCheck size={20} />
         </button>
       </div>
