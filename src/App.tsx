@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Heart,
   User,
@@ -31,7 +31,7 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
 );
 
 const Badge = ({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "info" }) => {
-  const styles = {
+  const styles: Record<string, string> = {
     default: "bg-blue-50 text-blue-600",
     success: "bg-emerald-50 text-emerald-600",
     warning: "bg-amber-50 text-amber-600",
@@ -45,105 +45,67 @@ const Badge = ({ children, variant = "default" }: { children: React.ReactNode; v
   );
 };
 
-// --- Gráficos (simulados e declaratórios) ---
+// --- Gráficos simples (mock) ---
 
-function SimpleMoodBars({ values }: { values: number[] }) {
-  // values: 1..5 (auto-relato)
-  const max = 5;
-  return (
-    <div className="mt-4">
-      <div className="flex items-end gap-2 h-24">
-        {values.map((v, i) => {
-          const h = Math.max(10, Math.round((v / max) * 100));
-          return (
-            <div key={i} className="flex-1 flex flex-col items-center">
-              <div className="w-full max-w-[14px] bg-blue-100 rounded-full overflow-hidden">
-                <div style={{ height: `${h}%` }} className="w-full bg-blue-600 rounded-full" />
-              </div>
-              <span className="text-[9px] text-slate-300 mt-2 font-black uppercase">D{i + 1}</span>
-            </div>
-          );
-        })}
+const MiniBars = () => (
+  <div className="w-full h-24 flex items-end gap-2">
+    {[22, 40, 28, 55, 42, 60, 72].map((h, i) => (
+      <div key={i} className="flex-1 flex flex-col items-center">
+        <div className="w-full rounded-full bg-blue-100 overflow-hidden h-24 flex items-end">
+          <div className="w-full bg-blue-600 rounded-full" style={{ height: `${h}%` }} />
+        </div>
+        <span className="mt-2 text-[9px] font-black text-slate-300 uppercase">D{i + 1}</span>
       </div>
-      <div className="flex justify-between mt-3 text-[10px] font-bold">
-        <span className="text-slate-400">Baixo</span>
-        <span className="text-slate-400">Alto</span>
-      </div>
+    ))}
+  </div>
+);
+
+const ProgressBar = ({ value = 95 }: { value?: number }) => (
+  <div className="mt-6">
+    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+      <div className="bg-blue-600 h-full" style={{ width: `${value}%` }} />
     </div>
-  );
-}
-
-function AdherenceMiniBars({ taken, total }: { taken: number; total: number }) {
-  // Mini barras para visualizar aderência por “blocos”
-  const blocks = 14;
-  const ratio = total === 0 ? 0 : taken / total;
-  const filled = Math.round(blocks * ratio);
-
-  return (
-    <div className="mt-4">
-      <div className="grid grid-cols-14 gap-1">
-        {Array.from({ length: blocks }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-3 rounded ${i < filled ? 'bg-emerald-500' : 'bg-slate-100'}`}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between mt-3 text-[10px] font-bold">
-        <span className="text-slate-400">0%</span>
-        <span className="text-slate-400">100%</span>
-      </div>
+    <div className="flex justify-between mt-2">
+      <span className="text-[10px] font-black text-slate-400">Objetivo: 100%</span>
+      <span className="text-[10px] font-black text-blue-600">{value}%</span>
     </div>
-  );
-}
+  </div>
+);
 
 // --- Aplicação Principal ---
 
-type Role = 'paciente' | 'apoio' | 'medico';
-
 export default function App() {
   const [view, setView] = useState<'login' | 'signup' | 'dashboard'>('login');
-  const [userRole, setUserRole] = useState<Role | null>(null);
+  const [userRole, setUserRole] = useState<'paciente' | 'apoio' | 'medico' | null>(null);
   const [signupStep, setSignupStep] = useState(1);
   const [activeTab, setActiveTab] = useState<'home' | 'network' | 'history'>('home');
   const [showLegalNotice, setShowLegalNotice] = useState(true);
 
-  // Auto-relato (simulado)
-  const [dailyNote, setDailyNote] = useState("");
-  const [moodValues] = useState<number[]>([3, 4, 3, 5, 4, 4, 5]); // 7 dias - auto relato 1..5
-
   // Mock de Dados de Tratamento
   const [treatments] = useState([
-    { id: 1, name: 'Losartana', dose: '50mg', time: '08:00', status: 'tomado' as const, obs: 'Tomar em jejum' },
-    { id: 2, name: 'Anlodipino', dose: '5mg', time: '20:00', status: 'pendente' as const, obs: '' },
-  ]);
-
-  const adherence = useMemo(() => {
-    // Simulação de aderência: conta quantos estão tomados hoje
-    const total = treatments.length;
-    const taken = treatments.filter(t => t.status === 'tomado').length;
-    const pct = total === 0 ? 0 : Math.round((taken / total) * 100);
-    return { total, taken, pct };
-  }, [treatments]);
+    { id: 1, name: 'Losartana', dose: '50mg', time: '08:00', status: 'tomado', obs: 'Tomar em jejum' },
+    { id: 2, name: 'Anlodipino', dose: '5mg', time: '20:00', status: 'pendente', obs: '' },
+  ] as const);
 
   const handleLogout = () => {
     setUserRole(null);
     setView('login');
     setSignupStep(1);
     setActiveTab('home');
+    setShowLegalNotice(true);
   };
 
-  const handleLogin = (role: Role) => {
+  const handleLogin = (role: 'paciente' | 'apoio' | 'medico') => {
     setUserRole(role);
     setView('dashboard');
+    setActiveTab('home');
   };
 
-  // --- Componente de Aviso Legal ---
   const LegalBanner = () => (
     <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start space-x-3">
       <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />
       <div className="text-[11px] text-amber-800 leading-relaxed font-medium">
-        <p className="font-black mb-1 uppercase">Aviso Legal:</p>
+        <p className="font-black mb-1 uppercase">Aviso Legal Obrigatório:</p>
         Este aplicativo é uma ferramenta de organização pessoal. As informações são fornecidas pelo próprio usuário.
         O app <strong>não realiza diagnósticos, não substitui avaliação médica</strong> e não deve ser utilizado para decisões clínicas.
       </div>
@@ -156,7 +118,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-xl w-full">
           <button
-            onClick={() => setView('login')}
+            onClick={() => { setView('login'); setSignupStep(1); }}
             className="mb-4 flex items-center text-sm font-black text-slate-400 hover:text-blue-600 transition-colors"
           >
             <ChevronLeft size={18} /> Cancelar Cadastro
@@ -205,8 +167,8 @@ export default function App() {
                     <input type="text" placeholder="Peso (kg)" className="p-3 rounded-xl bg-slate-50 text-sm" />
                     <input type="text" placeholder="Altura (cm)" className="p-3 rounded-xl bg-slate-50 text-sm" />
                     <input type="text" placeholder="Profissão" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm" />
-                    <textarea placeholder="Horários habituais (sono, alimentação, trabalho...)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-24" />
-                    <textarea placeholder="Hábitos de vida (ex: caminhada 3x/semana)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-20" />
+                    <textarea placeholder="Horários habituais (Sono, alimentação, trabalho...)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-24" />
+                    <textarea placeholder="Hábitos de vida (Ex: Caminhada 3x na semana)" className="col-span-full p-3 rounded-xl bg-slate-50 text-sm h-20" />
                   </div>
                 </div>
               )}
@@ -214,18 +176,10 @@ export default function App() {
               {signupStep === 3 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-black text-slate-800">Informações de Saúde</h2>
-                  <p className="text-[10px] text-amber-600 font-black bg-amber-50 p-2 rounded-lg uppercase">
-                    Apenas texto simples • Sem validação clínica
-                  </p>
+                  <p className="text-[10px] text-amber-600 font-black bg-amber-50 p-2 rounded-lg uppercase">Apenas texto simples • Sem validação clínica</p>
                   <div className="space-y-4">
-                    <textarea
-                      placeholder="Condições pré-existentes e doenças crônicas (auto declaradas)"
-                      className="w-full p-3 rounded-xl bg-slate-50 text-sm h-24"
-                    />
-                    <textarea
-                      placeholder="Uso contínuo de medicamentos (auto declarado)"
-                      className="w-full p-3 rounded-xl bg-slate-50 text-sm h-20"
-                    />
+                    <textarea placeholder="Condições pré-existentes (auto declaradas)" className="w-full p-3 rounded-xl bg-slate-50 text-sm h-24" />
+                    <textarea placeholder="Uso contínuo de medicamentos (auto declarado)" className="w-full p-3 rounded-xl bg-slate-50 text-sm h-20" />
                     <input type="text" placeholder="Alergias conhecidas" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
                   </div>
                 </div>
@@ -237,7 +191,7 @@ export default function App() {
                     <h2 className="text-xl font-black text-slate-800">Rede de Apoio</h2>
                     <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded">Opcional</span>
                   </div>
-                  <p className="text-xs text-slate-500">Pessoas que poderão visualizar sua agenda e registros (conforme permissões).</p>
+                  <p className="text-xs text-slate-500">Pessoas que poderão visualizar sua agenda e registros.</p>
                   <div className="space-y-3">
                     <input type="text" placeholder="Nome do contato" className="w-full p-3 rounded-xl bg-slate-50 text-sm" />
                     <select className="w-full p-3 rounded-xl bg-slate-50 text-sm">
@@ -253,14 +207,13 @@ export default function App() {
               )}
 
               <div className="flex justify-between mt-8">
-                {signupStep > 1 && (
-                  <button onClick={() => setSignupStep(s => s - 1)} className="px-6 py-3 font-black text-slate-400 text-sm">
-                    Anterior
-                  </button>
+                {signupStep > 1 ? (
+                  <button onClick={() => setSignupStep(s => s - 1)} className="px-6 py-3 font-black text-slate-400 text-sm">Anterior</button>
+                ) : (
+                  <div />
                 )}
-                <div className="flex-1"></div>
                 <button
-                  onClick={() => (signupStep < 4 ? setSignupStep(s => s + 1) : handleLogin('paciente'))}
+                  onClick={() => signupStep < 4 ? setSignupStep(s => s + 1) : handleLogin('paciente')}
                   className="px-8 py-3 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-100 flex items-center"
                 >
                   {signupStep === 4 ? 'Concluir' : 'Próximo'} <ChevronRight size={16} className="ml-1" />
@@ -292,46 +245,32 @@ export default function App() {
         </div>
       </header>
 
-      {/* Gráficos - Evolução (auto-relato) e Organização */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border border-slate-100">
-          <div className="flex items-start justify-between">
+      {/* Gráficos (mock) */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <div className="flex items-start justify-between mb-2">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Evolução do Bem-estar</p>
-              <p className="text-sm font-black text-slate-800 mt-1">Auto-relato (últimos 7 dias)</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Bem-estar (auto-relato)</p>
+              <p className="text-2xl font-black text-slate-800">Ótimo</p>
             </div>
-            <Badge variant="info">Declaratório</Badge>
+            <Badge variant="success">Tendência ↑</Badge>
           </div>
-
-          <p className="text-[10px] text-slate-400 mt-2 italic">
-            Visual apenas organizacional. Sem interpretação médica automática.
-          </p>
-
-          <SimpleMoodBars values={moodValues} />
+          <p className="text-[10px] text-slate-400 italic mb-4">Últimos 7 dias (exemplo)</p>
+          <MiniBars />
         </Card>
 
-        <Card className="border border-slate-100">
-          <div className="flex items-start justify-between">
+        <Card>
+          <div className="flex items-start justify-between mb-2">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Organização da Rotina</p>
-              <p className="text-sm font-black text-slate-800 mt-1">Aderência de hoje</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Frequência de registro</p>
+              <p className="text-2xl font-black text-slate-800">95%</p>
             </div>
-            <Badge variant={adherence.pct >= 80 ? "success" : adherence.pct >= 50 ? "warning" : "danger"}>
-              {adherence.pct}%
-            </Badge>
-          </div>
-
-          <div className="mt-4">
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-              <div className="bg-emerald-500 h-full" style={{ width: `${adherence.pct}%` }} />
-            </div>
-            <div className="flex justify-between mt-2 text-[10px] font-black">
-              <span className="text-slate-400">Tomados: {adherence.taken}/{adherence.total}</span>
-              <span className="text-emerald-600">{adherence.pct >= 80 ? "Bom ritmo" : "Ajustar rotina"}</span>
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <Activity size={18} />
             </div>
           </div>
-
-          <AdherenceMiniBars taken={adherence.taken} total={adherence.total} />
+          <p className="text-[10px] text-slate-400 italic">Assiduidade na organização (exemplo)</p>
+          <ProgressBar value={95} />
         </Card>
       </section>
 
@@ -341,19 +280,13 @@ export default function App() {
           <h3 className="font-black text-slate-800 flex items-center mb-4">
             <Smile size={18} className="mr-2 text-blue-500" /> Meu Relato do Dia
           </h3>
-          <p className="text-[10px] text-slate-400 mb-3 italic">
-            Escreva em linguagem simples como se sente. Sem análises médicas automáticas.
-          </p>
+          <p className="text-[10px] text-slate-400 mb-3 italic">Escreva em linguagem simples. Sem análises médicas automáticas.</p>
           <textarea
-            value={dailyNote}
-            onChange={(e) => setDailyNote(e.target.value)}
-            className="w-full p-4 bg-slate-50 rounded-xl border-none text-sm min-h-[100px] resize-none focus:ring-2 focus:ring-blue-100"
+            className="w-full p-4 bg-slate-50 rounded-xl border-none text-sm min-h-[110px] resize-none focus:ring-2 focus:ring-blue-100"
             placeholder="Ex: Hoje me senti cansado à tarde, mas dormi bem."
           />
           <div className="flex justify-end mt-3">
-            <button className="px-5 py-2 bg-blue-600 text-white text-xs font-black rounded-lg shadow-md">
-              Salvar Relato
-            </button>
+            <button className="px-5 py-2 bg-blue-600 text-white text-xs font-black rounded-lg shadow-md">Salvar Relato</button>
           </div>
         </Card>
       </section>
@@ -362,14 +295,11 @@ export default function App() {
       <section>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-black text-slate-800">Tratamentos Atuais</h3>
-          <Badge>Apenas Organizacional</Badge>
+          <Badge>Apenas organizacional</Badge>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {treatments.map(t => (
-            <Card
-              key={t.id}
-              className={`border-l-4 ${t.status === 'tomado' ? 'border-emerald-500' : 'border-amber-500'}`}
-            >
+            <Card key={t.id} className={`border-l-4 ${t.status === 'tomado' ? 'border-emerald-500' : 'border-amber-500'}`}>
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
@@ -380,13 +310,7 @@ export default function App() {
                   <p className="text-xs text-slate-500 font-medium">Dose: {t.dose}</p>
                   {t.obs && <p className="text-[10px] bg-slate-50 p-1.5 rounded inline-block text-slate-600">⚠️ {t.obs}</p>}
                 </div>
-                <button
-                  className={`p-2 rounded-full ${t.status === 'tomado'
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-slate-50 text-slate-300 border border-slate-100'
-                    }`}
-                  aria-label={t.status === 'tomado' ? 'Tomado' : 'Marcar como tomado'}
-                >
+                <button className={`p-2 rounded-full ${t.status === 'tomado' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300 border border-slate-100'}`}>
                   {t.status === 'tomado' ? <CheckCircle size={18} /> : <Plus size={18} />}
                 </button>
               </div>
@@ -403,9 +327,7 @@ export default function App() {
             <Camera size={28} />
           </div>
           <p className="font-black text-slate-700 text-xs mb-1">Upload de Foto da Receita</p>
-          <p className="text-[10px] text-slate-400 max-w-xs mb-4 italic">
-            Este app não interpreta receitas médicas e não substitui orientação profissional.
-          </p>
+          <p className="text-[10px] text-slate-400 max-w-xs mb-4 italic">O app não interpreta receitas e não substitui orientação profissional.</p>
           <button className="px-5 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black hover:bg-slate-50 transition-all flex items-center">
             <Upload size={12} className="mr-2" /> Selecionar Arquivo
           </button>
@@ -433,7 +355,7 @@ export default function App() {
             <h4 className="font-black text-slate-800">Maria Fernanda</h4>
             <p className="text-xs text-slate-400">Filha • Acesso Completo</p>
           </div>
-          <button className="text-slate-300" aria-label="Configurar acesso"><Settings size={18} /></button>
+          <button className="text-slate-300"><Settings size={18} /></button>
         </Card>
 
         <Card className="border-dashed border-2 border-slate-100 flex flex-col items-center justify-center p-6 text-center">
@@ -442,7 +364,6 @@ export default function App() {
         </Card>
       </div>
 
-      {/* Gestão de Acessos */}
       <Card>
         <h3 className="font-black text-slate-800 mb-4 text-sm flex items-center">
           <Shield size={16} className="mr-2 text-blue-500" /> Gestão de Acessos de Rede
@@ -461,7 +382,7 @@ export default function App() {
     </div>
   );
 
-  // --- Renderização de Login / Onboarding ---
+  // --- Login ---
 
   if (view === 'login') {
     return (
@@ -479,10 +400,7 @@ export default function App() {
             <h2 className="text-xl font-black text-center text-slate-800 mb-6">Aceder à conta</h2>
 
             <div className="space-y-3">
-              <button
-                onClick={() => handleLogin('paciente')}
-                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-blue-500 transition-all text-left"
-              >
+              <button onClick={() => handleLogin('paciente')} className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-blue-500 transition-all text-left">
                 <div className="bg-blue-50 p-2 rounded-lg text-blue-600"><User size={20} /></div>
                 <div>
                   <span className="font-black text-slate-800 block">Sou Paciente</span>
@@ -490,10 +408,7 @@ export default function App() {
                 </div>
               </button>
 
-              <button
-                onClick={() => handleLogin('apoio')}
-                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-purple-500 transition-all text-left"
-              >
+              <button onClick={() => handleLogin('apoio')} className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-purple-500 transition-all text-left">
                 <div className="bg-purple-50 p-2 rounded-lg text-purple-600"><Users size={20} /></div>
                 <div>
                   <span className="font-black text-slate-800 block">Sou Rede de Apoio</span>
@@ -501,10 +416,7 @@ export default function App() {
                 </div>
               </button>
 
-              <button
-                onClick={() => handleLogin('medico')}
-                className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-emerald-500 transition-all text-left"
-              >
+              <button onClick={() => handleLogin('medico')} className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center space-x-4 hover:border-emerald-500 transition-all text-left">
                 <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600"><Stethoscope size={20} /></div>
                 <div>
                   <span className="font-black text-slate-800 block">Sou Médico</span>
@@ -519,10 +431,7 @@ export default function App() {
               <div className="flex-grow border-t border-slate-100"></div>
             </div>
 
-            <button
-              onClick={() => setView('signup')}
-              className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all"
-            >
+            <button onClick={() => setView('signup')} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all">
               Criar Conta de Paciente
             </button>
           </Card>
@@ -535,14 +444,13 @@ export default function App() {
     );
   }
 
-  if (view === 'signup') {
-    return renderSignup();
-  }
+  if (view === 'signup') return renderSignup();
 
-  // --- Renderização do Painel (Dashboard) ---
+  // --- Dashboard ---
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
+
       {/* Sidebar Desktop */}
       <aside className="w-full md:w-64 bg-white border-r border-slate-100 p-6 hidden md:flex flex-col">
         <div className="flex items-center space-x-3 mb-12">
@@ -553,42 +461,21 @@ export default function App() {
         </div>
 
         <nav className="flex-1 space-y-1">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'home'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-              : 'text-slate-500 hover:bg-slate-50'
-              }`}
-          >
-            <Activity size={20} /> <span className="text-sm">Painel Principal</span>
+          <button onClick={() => setActiveTab('home')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <Activity size={20} /> <span className="text-sm">Home</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('network')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'network'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-              : 'text-slate-500 hover:bg-slate-50'
-              }`}
-          >
+          <button onClick={() => setActiveTab('network')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'network' ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}>
             <Users size={20} /> <span className="text-sm">Rede de Apoio</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'history'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-              : 'text-slate-500 hover:bg-slate-50'
-              }`}
-          >
-            <FileCheck size={20} /> <span className="text-sm">Meu Histórico</span>
+          <button onClick={() => setActiveTab('history')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black transition-all ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}>
+            <FileCheck size={20} /> <span className="text-sm">Histórico</span>
           </button>
 
           <div className="pt-8 mt-8 border-t border-slate-50">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black text-rose-500 hover:bg-rose-50 transition-all"
-            >
-              <ChevronLeft size={20} /> <span className="text-sm">Sair da Conta</span>
+            <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-black text-rose-500 hover:bg-rose-50 transition-all">
+              <ChevronLeft size={20} /> <span className="text-sm">Sair</span>
             </button>
           </div>
         </nav>
@@ -598,11 +485,29 @@ export default function App() {
             {userRole?.[0] ?? 'U'}
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Perfil Ativo</p>
-            <p className="text-xs font-black text-slate-800 capitalize leading-none">{userRole ?? '—'}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Perfil</p>
+            <p className="text-xs font-black text-slate-800 capitalize leading-none">{userRole}</p>
           </div>
         </div>
       </aside>
+
+      {/* Header Mobile com botão Home */}
+      <div className="md:hidden bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+        <button
+          onClick={() => setActiveTab('home')}
+          className="flex items-center gap-2 text-slate-700 font-black text-sm"
+        >
+          <Heart className="text-blue-600" size={18} fill="currentColor" />
+          <span className="italic">VitaFlow</span>
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="text-rose-500 font-black text-xs bg-rose-50 px-3 py-2 rounded-xl"
+        >
+          Sair
+        </button>
+      </div>
 
       {/* Main Content Area */}
       <main className="flex-1 p-6 md:p-10 pb-24 max-w-5xl mx-auto w-full">
@@ -612,11 +517,21 @@ export default function App() {
             <button
               onClick={() => setShowLegalNotice(false)}
               className="absolute top-2 right-2 p-1 text-amber-400 hover:text-amber-600"
-              aria-label="Fechar aviso"
             >
               <X size={14} />
             </button>
           </div>
+        )}
+
+        {/* Botão "Voltar ao Home" (desktop) */}
+        {activeTab !== 'home' && (
+          <button
+            onClick={() => setActiveTab('home')}
+            className="hidden md:inline-flex items-center gap-2 mb-6 text-sm font-black text-slate-500 hover:text-blue-600"
+          >
+            <ChevronLeft size={16} />
+            Voltar ao Home
+          </button>
         )}
 
         {activeTab === 'home' && renderHome()}
@@ -646,15 +561,9 @@ export default function App() {
 
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 px-4 py-3 flex justify-around items-center shadow-lg">
-        <button onClick={() => setActiveTab('home')} className={`p-3 rounded-2xl ${activeTab === 'home' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
-          <Activity size={20} />
-        </button>
-        <button onClick={() => setActiveTab('network')} className={`p-3 rounded-2xl ${activeTab === 'network' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
-          <Users size={20} />
-        </button>
-        <button onClick={() => setActiveTab('history')} className={`p-3 rounded-2xl ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
-          <FileCheck size={20} />
-        </button>
+        <button onClick={() => setActiveTab('home')} className={`p-3 rounded-2xl ${activeTab === 'home' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}><Activity size={20} /></button>
+        <button onClick={() => setActiveTab('network')} className={`p-3 rounded-2xl ${activeTab === 'network' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}><Users size={20} /></button>
+        <button onClick={() => setActiveTab('history')} className={`p-3 rounded-2xl ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}><FileCheck size={20} /></button>
       </div>
     </div>
   );
