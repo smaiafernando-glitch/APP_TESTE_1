@@ -31,11 +31,8 @@ import {
 
 /**
  * VIVERCOM — Single-file demo app (React)
- * - Login + role selection + forgot password + register (mock)
- * - Agenda: list + add new consults + change status (realizada/cancelada)
- * - Histórico: KPIs por período (7/30 dias), timeline com disposição + meds + consultas
- * - Aderência remédios/consultas e histórico de "como estava se sentindo"
- * - Header único (sticky) sem duplicar.
+ * Ajuste pedido: permitir prosseguir (Entrar) sem criar conta/validar credenciais.
+ * => Apenas removi o bloqueio do botão "Entrar" e mantive o fluxo de navegação.
  */
 
 // -------------------------
@@ -45,7 +42,6 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const toISODate = (d: Date) =>
   `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const parseISO = (iso: string) => {
-  // safe parse for yyyy-mm-dd as local
   const [y, m, dd] = iso.split("-").map((x) => parseInt(x, 10));
   return new Date(y, (m || 1) - 1, dd || 1, 12, 0, 0, 0);
 };
@@ -238,23 +234,23 @@ type Med = {
   id: number;
   name: string;
   dose: string;
-  time: string; // HH:MM
+  time: string;
   taken: boolean;
   note?: string;
-  source?: string; // Médico/Paciente
-  date: string; // YYYY-MM-DD
+  source?: string;
+  date: string;
 };
 
 type AppointmentStatus = "Agendada" | "Realizada" | "Cancelada";
 type AppointmentType = "Presencial" | "Teleconsulta";
 type Appointment = {
   id: number;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
+  date: string;
+  time: string;
   doctor: string;
   spec: string;
   type: AppointmentType;
-  place: string; // address or link
+  place: string;
   status: AppointmentStatus;
   goal?: string;
 };
@@ -270,7 +266,7 @@ export default function App() {
   const [view, setView] = useState<View>("auth-login");
   const [userRole, setUserRole] = useState<Role | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("home");
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null); // placeholder future
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<7 | 30>(7);
 
   // Auth UI states (mock)
@@ -295,9 +291,7 @@ export default function App() {
   const [moodScore, setMoodScore] = useState<number>(8);
   const [moodText, setMoodText] = useState<string>("");
 
-  // -------------------------
-  // Mock data (now dynamic around today)
-  // -------------------------
+  // Mock data
   const [meds, setMeds] = useState<Med[]>([
     { id: 1, name: "Losartana", dose: "50mg", time: "08:00", taken: true, note: "Em jejum", source: "Médico", date: daysAgoISO(0) },
     { id: 2, name: "Metformina", dose: "850mg", time: "12:00", taken: false, note: "Após o almoço", source: "Paciente", date: daysAgoISO(0) },
@@ -309,7 +303,7 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>([
     {
       id: 1,
-      date: daysAgoISO(-1), // tomorrow
+      date: daysAgoISO(-1),
       time: "14:30",
       doctor: "Dr. Alberto Rossi",
       spec: "Cardiologia",
@@ -349,19 +343,12 @@ export default function App() {
     { date: daysAgoISO(4), score: 5, text: "Sono ruim, mais lento." },
   ]);
 
-  // -------------------------
   // Filters by period
-  // -------------------------
   const medsInPeriod = useMemo(() => meds.filter((m) => inLastNDays(m.date, periodFilter)), [meds, periodFilter]);
-  const appsInPeriod = useMemo(
-    () => appointments.filter((a) => inLastNDays(a.date, periodFilter)),
-    [appointments, periodFilter]
-  );
+  const appsInPeriod = useMemo(() => appointments.filter((a) => inLastNDays(a.date, periodFilter)), [appointments, periodFilter]);
   const moodsInPeriod = useMemo(() => dailyMoods.filter((m) => inLastNDays(m.date, periodFilter)), [dailyMoods, periodFilter]);
 
-  // -------------------------
   // KPI calculations (based on selected period)
-  // -------------------------
   const stats = useMemo(() => {
     const totalMeds = medsInPeriod.length;
     const takenMeds = medsInPeriod.filter((m) => m.taken).length;
@@ -385,9 +372,7 @@ export default function App() {
     };
   }, [medsInPeriod, appsInPeriod, moodsInPeriod]);
 
-  // -------------------------
   // Navigation logic
-  // -------------------------
   const handleLogout = () => {
     setView("auth-login");
     setUserRole(null);
@@ -410,29 +395,25 @@ export default function App() {
       setActiveTab("home");
       return;
     }
-    // already in home
     if (window.confirm("Deseja sair da conta?")) handleLogout();
   };
 
-  // -------------------------
   // Auth handlers (mock)
-  // -------------------------
   const doLogin = async () => {
     setAuthLoading(true);
     setTimeout(() => {
       setAuthLoading(false);
       setView("auth-select-profile");
-    }, 650);
+    }, 450);
   };
 
   const doRegister = async () => {
     setAuthLoading(true);
     setTimeout(() => {
       setAuthLoading(false);
-      // after register go to login
       setView("auth-login");
       alert("Conta criada (mock). Agora faça login.");
-    }, 700);
+    }, 600);
   };
 
   const doForgot = async () => {
@@ -441,12 +422,10 @@ export default function App() {
       setAuthLoading(false);
       alert("Se existir uma conta com esse e-mail, enviamos um link de recuperação (mock).");
       setView("auth-login");
-    }, 700);
+    }, 600);
   };
 
-  // -------------------------
   // App header (single sticky)
-  // -------------------------
   const Header = ({ title }: { title: string }) => (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-[#E5E5EA] px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -474,9 +453,7 @@ export default function App() {
     </header>
   );
 
-  // -------------------------
   // Home — meds first, then consults
-  // -------------------------
   const nextAppointment = useMemo(() => {
     const future = appointments
       .filter((a) => a.status === "Agendada")
@@ -499,7 +476,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 1) Agenda de remédios em primeiro */}
+      {/* 1) Meds first */}
       <section className="space-y-4">
         <h3 className="text-[10px] font-black text-[#8E8E93] uppercase tracking-widest px-1">
           {userRole === "apoio" ? "Remédios do Paciente (Hoje)" : "Remédios (Hoje)"}
@@ -519,11 +496,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      m.taken ? "bg-[#34C759] text-white" : "bg-slate-100 text-slate-400"
-                    }`}
-                  >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${m.taken ? "bg-[#34C759] text-white" : "bg-slate-100 text-slate-400"}`}>
                     <Pill size={24} />
                   </div>
                   <div>
@@ -554,7 +527,7 @@ export default function App() {
         )}
       </section>
 
-      {/* 2) Agenda de consultas */}
+      {/* 2) Appointments */}
       <Card title="Próxima Consulta" subtitle="Agenda de médicos" icon={Calendar} color="blue">
         {nextAppointment ? (
           <div className="flex items-center justify-between pt-2">
@@ -579,9 +552,9 @@ export default function App() {
         )}
       </Card>
 
-      {/* 3) Disposição / Relato para histórico */}
+      {/* 3) Mood register */}
       {userRole !== "apoio" && (
-        <Card title="Como está sua disposição hoje?" subtitle="0 muito indisposto • 10 muito disposto" icon={Smile} color="orange">
+        <Card title="Como está sua disposição hoje?" subtitle="0 muito indisposto • 10 muito disposto" icon={Info} color="orange">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
               <input
@@ -617,7 +590,7 @@ export default function App() {
             className="w-full text-xs"
             onClick={() => {
               const exists = dailyMoods.some((m) => m.date === todayISO);
-              const entry: Mood = { date: todayISO, score: moodScore, text: moodText.trim() || "Sem relato informado." };
+              const entry = { date: todayISO, score: moodScore, text: moodText.trim() || "Sem relato informado." };
               setDailyMoods((prev) => {
                 if (exists) return prev.map((m) => (m.date === todayISO ? entry : m));
                 return [entry, ...prev];
@@ -631,9 +604,9 @@ export default function App() {
         </Card>
       )}
 
-      {/* 4) visão rápida para rede de apoio */}
+      {/* 4) Caregiver summary */}
       {userRole === "apoio" && (
-        <Card title="Aderência Geral" subtitle="Visão rápida do cuidador" icon={Activity} color="green">
+        <Card title="Aderência Geral" subtitle="Visão rápida do cuidador" icon={Layout} color="green">
           <div className="flex items-center gap-8 py-4">
             <div className="text-center">
               <p className="text-2xl font-black text-green-600">{stats.medAdherence}%</p>
@@ -652,9 +625,7 @@ export default function App() {
     </div>
   );
 
-  // -------------------------
-  // Agenda — add appointment + status actions
-  // -------------------------
+  // Agenda actions
   const addAppointment = () => {
     if (!apptForm.date || !apptForm.time || !apptForm.doctor.trim() || !apptForm.spec.trim() || !apptForm.place.trim()) {
       alert("Preencha data, hora, médico, especialidade e local/link.");
@@ -715,32 +686,12 @@ export default function App() {
 
             <div className="grid grid-cols-1 gap-4">
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Data"
-                  type="date"
-                  value={apptForm.date}
-                  onChange={(e: any) => setApptForm((p) => ({ ...p, date: e.target.value }))}
-                />
-                <Input
-                  label="Hora"
-                  type="time"
-                  value={apptForm.time}
-                  onChange={(e: any) => setApptForm((p) => ({ ...p, time: e.target.value }))}
-                />
+                <Input label="Data" type="date" value={apptForm.date} onChange={(e) => setApptForm((p) => ({ ...p, date: e.target.value }))} />
+                <Input label="Hora" type="time" value={apptForm.time} onChange={(e) => setApptForm((p) => ({ ...p, time: e.target.value }))} />
               </div>
 
-              <Input
-                label="Médico"
-                placeholder="Nome do médico"
-                value={apptForm.doctor}
-                onChange={(e: any) => setApptForm((p) => ({ ...p, doctor: e.target.value }))}
-              />
-              <Input
-                label="Especialidade"
-                placeholder="Ex: Cardiologia"
-                value={apptForm.spec}
-                onChange={(e: any) => setApptForm((p) => ({ ...p, spec: e.target.value }))}
-              />
+              <Input label="Médico" placeholder="Nome do médico" value={apptForm.doctor} onChange={(e) => setApptForm((p) => ({ ...p, doctor: e.target.value }))} />
+              <Input label="Especialidade" placeholder="Ex: Cardiologia" value={apptForm.spec} onChange={(e) => setApptForm((p) => ({ ...p, spec: e.target.value }))} />
 
               <div className="flex gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100">
                 <button
@@ -769,14 +720,9 @@ export default function App() {
                 label="Local / Link"
                 placeholder={apptForm.type === "Teleconsulta" ? "Cole o link (ex: Meet/Zoom)" : "Endereço"}
                 value={apptForm.place}
-                onChange={(e: any) => setApptForm((p) => ({ ...p, place: e.target.value }))}
+                onChange={(e) => setApptForm((p) => ({ ...p, place: e.target.value }))}
               />
-              <Input
-                label="Objetivo (opcional)"
-                placeholder="Ex: Retorno / Check-up / Ajuste"
-                value={apptForm.goal}
-                onChange={(e: any) => setApptForm((p) => ({ ...p, goal: e.target.value }))}
-              />
+              <Input label="Objetivo (opcional)" placeholder="Ex: Retorno / Check-up / Ajuste" value={apptForm.goal} onChange={(e) => setApptForm((p) => ({ ...p, goal: e.target.value }))} />
 
               <Button onClick={addAppointment} className="w-full">
                 Agendar
@@ -789,7 +735,7 @@ export default function App() {
           {sorted.map((app) => {
             const statusVariant: BadgeVariant =
               app.status === "Realizada" ? "success" : app.status === "Cancelada" ? "danger" : "info";
-            const icon = app.type === "Teleconsulta" ? Video : Calendar;
+            const Icon = app.type === "Teleconsulta" ? Video : Calendar;
 
             return (
               <div key={app.id} className="bg-white rounded-[24px] border border-[#E5E5EA] overflow-hidden shadow-sm">
@@ -800,7 +746,7 @@ export default function App() {
                         app.status === "Agendada" ? "bg-blue-50 text-[#007AFF]" : "bg-slate-50 text-slate-400"
                       }`}
                     >
-                      {React.createElement(icon, { size: 24 })}
+                      <Icon size={24} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -869,22 +815,14 @@ export default function App() {
     );
   };
 
-  // -------------------------
-  // History — KPIs + mood mini chart + timeline by day
-  // -------------------------
-  const moodSeries = useMemo(() => {
-    const src = [...moodsInPeriod].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-    return src;
-  }, [moodsInPeriod]);
-
+  // History — KPIs + timeline
+  const moodSeries = useMemo(() => [...moodsInPeriod].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()), [moodsInPeriod]);
   const timelineDays = useMemo(() => {
-    // use union of days present in moods/meds/appointments within selected period
     const set = new Set<string>();
     medsInPeriod.forEach((m) => set.add(m.date));
     appsInPeriod.forEach((a) => set.add(a.date));
     moodsInPeriod.forEach((m) => set.add(m.date));
-    const arr = Array.from(set).sort((a, b) => parseISO(b).getTime() - parseISO(a).getTime());
-    return arr;
+    return Array.from(set).sort((a, b) => parseISO(b).getTime() - parseISO(a).getTime());
   }, [medsInPeriod, appsInPeriod, moodsInPeriod]);
 
   const renderHistory = () => (
@@ -892,31 +830,14 @@ export default function App() {
       <div className="flex justify-between items-end px-1">
         <div>
           <h2 className="text-2xl font-black">Histórico</h2>
-          <p className="text-sm text-[#8E8E93]">
-            {userRole === "apoio" ? "Monitorando evolução do paciente." : "Indicadores e linha do tempo do período."}
-          </p>
+          <p className="text-sm text-[#8E8E93]">{userRole === "apoio" ? "Monitorando evolução do paciente." : "Indicadores e linha do tempo do período."}</p>
         </div>
         <div className="flex bg-white p-1 rounded-xl border border-[#E5E5EA]">
-          <button
-            onClick={() => setPeriodFilter(7)}
-            className={`px-3 py-1 text-[10px] font-black rounded-lg ${
-              periodFilter === 7 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"
-            }`}
-          >
-            7D
-          </button>
-          <button
-            onClick={() => setPeriodFilter(30)}
-            className={`px-3 py-1 text-[10px] font-black rounded-lg ${
-              periodFilter === 30 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"
-            }`}
-          >
-            30D
-          </button>
+          <button onClick={() => setPeriodFilter(7)} className={`px-3 py-1 text-[10px] font-black rounded-lg ${periodFilter === 7 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"}`}>7D</button>
+          <button onClick={() => setPeriodFilter(30)} className={`px-3 py-1 text-[10px] font-black rounded-lg ${periodFilter === 30 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"}`}>30D</button>
         </div>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card title="Aderência Med." subtitle="Remédios tomados" icon={Pill} color="green">
           <div className="flex items-end justify-between">
@@ -926,51 +847,33 @@ export default function App() {
               {stats.medAdherence >= 70 ? "OK" : "Baixa"}
             </div>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full mt-2">
-            <div className="h-full bg-green-500 rounded-full" style={{ width: `${stats.medAdherence}%` }} />
-          </div>
-          <p className="text-[10px] text-slate-400 mt-2">
-            {stats.takenMeds} de {stats.totalMeds} doses no período
-          </p>
+          <div className="h-1.5 bg-slate-100 rounded-full mt-2"><div className="h-full bg-green-500 rounded-full" style={{ width: `${stats.medAdherence}%` }} /></div>
+          <p className="text-[10px] text-slate-400 mt-2">{stats.takenMeds} de {stats.totalMeds} doses no período</p>
         </Card>
 
         <Card title="Consultas" subtitle="Aderência" icon={Calendar} color="blue">
           <div className="flex items-end justify-between">
             <span className="text-3xl font-black tracking-tighter">{stats.appAdherence}%</span>
-            <div className="flex items-center text-xs font-bold text-slate-400">
-              <Minus size={14} className="mr-1" /> {stats.realizedApps}/{stats.totalApps}
-            </div>
+            <div className="flex items-center text-xs font-bold text-slate-400"><Minus size={14} className="mr-1" /> {stats.realizedApps}/{stats.totalApps}</div>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full mt-2">
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.appAdherence}%` }} />
-          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full mt-2"><div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.appAdherence}%` }} /></div>
           <p className="text-[10px] text-slate-400 mt-2">Realizadas / registradas no período</p>
         </Card>
 
-        <Card title="Bem-estar" subtitle="Disposição média" icon={Smile} color="orange">
+        <Card title="Bem-estar" subtitle="Disposição média" icon={Info} color="orange">
           <div className="flex items-end justify-between">
             <span className="text-3xl font-black tracking-tighter">{stats.avgMood}/10</span>
-            <div className="flex items-center text-xs font-bold text-slate-400">
-              <Minus size={14} className="mr-1" /> período
-            </div>
+            <div className="flex items-center text-xs font-bold text-slate-400"><Minus size={14} className="mr-1" /> período</div>
           </div>
-
-          {/* mini chart (bars) */}
           <div className="flex items-end gap-1 h-10 mt-3">
             {(moodSeries.length ? moodSeries : [{ date: todayISO, score: 0, text: "" }]).map((m, i) => (
-              <div
-                key={`${m.date}-${i}`}
-                className="flex-1 bg-orange-100 rounded-t-sm"
-                style={{ height: `${Math.max(5, m.score * 10)}%` }}
-                title={`${prettyBR(m.date)}: ${m.score}/10`}
-              />
+              <div key={`${m.date}-${i}`} className="flex-1 bg-orange-100 rounded-t-sm" style={{ height: `${Math.max(5, m.score * 10)}%` }} title={`${prettyBR(m.date)}: ${m.score}/10`} />
             ))}
           </div>
           <p className="text-[10px] text-slate-400 mt-2">Histórico de disposição</p>
         </Card>
       </div>
 
-      {/* Timeline */}
       <div className="space-y-8 relative before:absolute before:left-6 before:top-2 before:bottom-0 before:w-0.5 before:bg-[#E5E5EA]">
         {timelineDays.length === 0 ? (
           <Card title="Sem registros no período" subtitle="Inclua relatos, medicamentos e consultas">
@@ -985,12 +888,9 @@ export default function App() {
             return (
               <div key={date} className="relative pl-14 space-y-4">
                 <div className="absolute left-4 top-1 w-4 h-4 rounded-full bg-white border-2 border-[#007AFF] z-10 shadow-sm" />
-                <h3 className="text-[11px] font-black text-[#8E8E93] uppercase tracking-widest bg-white inline-block px-2 -ml-2 rounded">
-                  {prettyBR(date)}
-                </h3>
+                <h3 className="text-[11px] font-black text-[#8E8E93] uppercase tracking-widest bg-white inline-block px-2 -ml-2 rounded">{prettyBR(date)}</h3>
 
                 <div className="space-y-3">
-                  {/* Mood */}
                   {mood && (
                     <div className="bg-white p-4 rounded-2xl border border-[#E5E5EA] shadow-sm">
                       <div className="flex justify-between items-center mb-2">
@@ -1001,7 +901,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Meds */}
                   {medsDay.length > 0 && (
                     <div className="bg-white p-4 rounded-2xl border border-[#E5E5EA] shadow-sm space-y-2">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">MEDICAÇÕES</p>
@@ -1009,9 +908,7 @@ export default function App() {
                         <div key={m.id} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${m.taken ? "bg-green-500" : "bg-red-400"}`} />
-                            <span className="text-xs font-bold">
-                              {m.name} ({m.time})
-                            </span>
+                            <span className="text-xs font-bold">{m.name} ({m.time})</span>
                           </div>
                           <span className="text-[10px] font-medium text-slate-400">{m.taken ? "Tomado" : "Pendente"}</span>
                         </div>
@@ -1019,7 +916,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Apps */}
                   {appsDay.map((a) => (
                     <div
                       key={a.id}
@@ -1034,17 +930,11 @@ export default function App() {
                       <div className="flex items-center gap-3">
                         <Stethoscope size={18} className="text-[#007AFF]" />
                         <div>
-                          <p className="text-xs font-bold text-slate-800">
-                            Consulta: {a.doctor} • {a.time}
-                          </p>
-                          <p className="text-[10px] text-slate-600 font-medium">
-                            {a.spec} • {a.type} • {a.status}
-                          </p>
+                          <p className="text-xs font-bold text-slate-800">Consulta: {a.doctor} • {a.time}</p>
+                          <p className="text-[10px] text-slate-600 font-medium">{a.spec} • {a.type} • {a.status}</p>
                         </div>
                       </div>
-                      <Badge variant={a.status === "Realizada" ? "success" : a.status === "Cancelada" ? "danger" : "info"}>
-                        {a.status}
-                      </Badge>
+                      <Badge variant={a.status === "Realizada" ? "success" : a.status === "Cancelada" ? "danger" : "info"}>{a.status}</Badge>
                     </div>
                   ))}
                 </div>
@@ -1056,9 +946,6 @@ export default function App() {
     </div>
   );
 
-  // -------------------------
-  // Profile
-  // -------------------------
   const renderProfile = () => (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <Card title="Conta" subtitle="Configurações básicas" icon={Settings} color="slate">
@@ -1090,9 +977,8 @@ export default function App() {
     </div>
   );
 
-  // -------------------------
   // AUTH SCREENS
-  // -------------------------
+
   if (view === "auth-login") {
     return (
       <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-6">
@@ -1106,55 +992,32 @@ export default function App() {
           </div>
 
           <Card>
-            <Input
-              label="E-mail"
-              placeholder="seu@email.com"
-              icon={Mail}
-              value={authEmail}
-              onChange={(e: any) => setAuthEmail(e.target.value)}
-            />
+            <Input label="E-mail" placeholder="seu@email.com" icon={Mail} value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
             <Input
               label="Senha"
               type={passVisible ? "text" : "password"}
               placeholder="••••••••"
               icon={Lock}
               value={authPass}
-              onChange={(e: any) => setAuthPass(e.target.value)}
+              onChange={(e) => setAuthPass(e.target.value)}
               right={
-                <button
-                  type="button"
-                  onClick={() => setPassVisible((v) => !v)}
-                  className="p-2 rounded-full hover:bg-slate-50 text-slate-400"
-                  title={passVisible ? "Ocultar" : "Mostrar"}
-                >
+                <button type="button" onClick={() => setPassVisible((v) => !v)} className="p-2 rounded-full hover:bg-slate-50 text-slate-400">
                   {passVisible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               }
             />
 
             <div className="flex items-center justify-between">
-              <button
-                className="text-xs font-black text-[#007AFF] hover:underline"
-                onClick={() => setView("auth-forgot")}
-                type="button"
-              >
+              <button className="text-xs font-black text-[#007AFF] hover:underline" onClick={() => setView("auth-forgot")} type="button">
                 Esqueci minha senha
               </button>
-              <button
-                className="text-xs font-black text-slate-500 hover:underline"
-                onClick={() => setView("auth-register")}
-                type="button"
-              >
+              <button className="text-xs font-black text-slate-500 hover:underline" onClick={() => setView("auth-register")} type="button">
                 Criar conta
               </button>
             </div>
 
-            <Button
-              onClick={doLogin}
-              className="w-full mt-2"
-              loading={authLoading}
-              disabled={!authEmail.trim() || !authPass.trim()}
-            >
+            {/* ✅ ÚNICA MUDANÇA: botão "Entrar" SEM bloqueio por e-mail/senha */}
+            <Button onClick={doLogin} className="w-full mt-2" loading={authLoading}>
               Entrar
             </Button>
           </Card>
@@ -1178,14 +1041,8 @@ export default function App() {
           </div>
 
           <Card>
-            <Input
-              label="E-mail"
-              placeholder="seu@email.com"
-              icon={Mail}
-              value={authEmail}
-              onChange={(e: any) => setAuthEmail(e.target.value)}
-            />
-            <Button onClick={doForgot} className="w-full" loading={authLoading} disabled={!authEmail.trim()}>
+            <Input label="E-mail" placeholder="seu@email.com" icon={Mail} value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
+            <Button onClick={doForgot} className="w-full" loading={authLoading}>
               Enviar link
             </Button>
           </Card>
@@ -1214,27 +1071,17 @@ export default function App() {
           </div>
 
           <Card>
-            <Input label="Nome" placeholder="Seu nome" icon={User} value={rName} onChange={(e: any) => setRName(e.target.value)} />
-            <Input
-              label="E-mail"
-              placeholder="seu@email.com"
-              icon={Mail}
-              value={authEmail}
-              onChange={(e: any) => setAuthEmail(e.target.value)}
-            />
+            <Input label="Nome" placeholder="Seu nome" icon={User} value={rName} onChange={(e) => setRName(e.target.value)} />
+            <Input label="E-mail" placeholder="seu@email.com" icon={Mail} value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
             <Input
               label="Senha"
               type={rPassVisible ? "text" : "password"}
               placeholder="••••••••"
               icon={Lock}
               value={rPass}
-              onChange={(e: any) => setRPass(e.target.value)}
+              onChange={(e) => setRPass(e.target.value)}
               right={
-                <button
-                  type="button"
-                  onClick={() => setRPassVisible((v) => !v)}
-                  className="p-2 rounded-full hover:bg-slate-50 text-slate-400"
-                >
+                <button type="button" onClick={() => setRPassVisible((v) => !v)} className="p-2 rounded-full hover:bg-slate-50 text-slate-400">
                   {rPassVisible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               }
@@ -1273,19 +1120,11 @@ export default function App() {
               </div>
             </div>
 
-            <Button
-              onClick={doRegister}
-              className="w-full"
-              loading={authLoading}
-              disabled={!rName.trim() || !authEmail.trim() || rPass.length < 6}
-              icon={Plus}
-            >
+            <Button onClick={doRegister} className="w-full" loading={authLoading} icon={Plus}>
               Criar conta
             </Button>
 
-            <p className="text-[11px] text-slate-400 font-bold">
-              Obs.: este cadastro é demonstrativo. Integração real com backend fica para o dev.
-            </p>
+            <p className="text-[11px] text-slate-400 font-bold">Obs.: este cadastro é demonstrativo. Integração real com backend fica para o dev.</p>
           </Card>
         </div>
       </div>
@@ -1361,12 +1200,9 @@ export default function App() {
     );
   }
 
-  // -------------------------
-  // APP Shell
-  // -------------------------
+  // APP shell
   if (view === "app") {
-    const headerTitle =
-      activeTab === "home" ? "Painel de Saúde" : activeTab === "calendar" ? "Agenda" : activeTab === "history" ? "Histórico" : "Conta";
+    const headerTitle = activeTab === "home" ? "Painel de Saúde" : activeTab === "calendar" ? "Agenda" : activeTab === "history" ? "Histórico" : "Conta";
 
     return (
       <div className="min-h-screen bg-[#F2F2F7] flex flex-col md:flex-row text-[#1C1C1E]">
@@ -1442,6 +1278,5 @@ export default function App() {
     );
   }
 
-  // Fallback
   return null;
 }
