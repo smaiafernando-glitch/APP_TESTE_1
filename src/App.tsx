@@ -2,1306 +2,1446 @@ import React, { useMemo, useState } from "react";
 import {
   Heart,
   User,
-  Activity,
-  Plus,
-  CheckCircle,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  Smile,
-  FileCheck,
-  Clock,
-  Calendar,
-  Shield,
-  Stethoscope,
-  X,
-  Thermometer,
-  MapPin,
-  Video,
-  Search,
-  ClipboardList,
   Layout,
-  RefreshCw,
-  Trash2,
-  Info,
-  Mail,
+  Calendar,
+  History,
+  Settings,
+  LogOut,
   Lock,
+  Mail,
   Eye,
   EyeOff,
-  KeyRound,
-  Pencil,
-  LogOut,
+  ChevronLeft,
+  Plus,
+  X,
+  Clock,
+  MapPin,
+  Video,
+  Pill,
+  CheckCircle,
+  MoreHorizontal,
+  Info,
+  HeartHandshake,
+  Stethoscope,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  RefreshCw,
 } from "lucide-react";
 
 /**
- * VIVERCOM — Single-file demo app
- * - Apple-like design tokens + components
- * - Login with email/senha + selecionar perfil (paciente/médico/rede)
- * - Recuperar senha
- * - Header fixo ÚNICO (sem duplicar ao scroll)
- * - Paciente: Remédios primeiro, Consultas, Disposição (0-10), Aderência do mês, Atualização de cadastro
- * - Médico: lista de pacientes, detalhes, notas e prescrições (mock)
- * - Rede de apoio: visão reduzida (mock)
+ * VIVERCOM — Single-file demo app (React)
+ * - Login + role selection + forgot password + register (mock)
+ * - Agenda: list + add new consults + change status (realizada/cancelada)
+ * - Histórico: KPIs por período (7/30 dias), timeline com disposição + meds + consultas
+ * - Aderência remédios/consultas e histórico de "como estava se sentindo"
+ * - Header único (sticky) sem duplicar.
  */
 
-/* ------------------------------ 1) DESIGN TOKENS ------------------------------ */
-
-const Tokens = {
-  colors: {
-    primary: "#007AFF",
-    success: "#34C759",
-    warning: "#FF9500",
-    danger: "#FF3B30",
-    indigo: "#5856D6",
-    text: {
-      primary: "#1C1C1E",
-      secondary: "#8E8E93",
-      tertiary: "#C7C7CC",
-    },
-    background: "#F2F2F7",
-    surface: "#FFFFFF",
-    border: "#E5E5EA",
-  },
-  radius: {
-    sm: "10px",
-    md: "14px",
-    lg: "18px",
-    xl: "24px",
-    full: "9999px",
-  },
-  shadow: {
-    sm: "0 2px 10px rgba(0,0,0,0.05)",
-    md: "0 6px 22px rgba(0,0,0,0.10)",
-  },
+// -------------------------
+// Utils
+// -------------------------
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const toISODate = (d: Date) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseISO = (iso: string) => {
+  // safe parse for yyyy-mm-dd as local
+  const [y, m, dd] = iso.split("-").map((x) => parseInt(x, 10));
+  return new Date(y, (m || 1) - 1, dd || 1, 12, 0, 0, 0);
+};
+const daysAgoISO = (daysAgo: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return toISODate(d);
+};
+const inLastNDays = (isoDate: string, n: number) => {
+  const d = parseISO(isoDate);
+  const now = new Date();
+  const from = new Date();
+  from.setDate(now.getDate() - (n - 1));
+  from.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() >= from.getTime() && d.getTime() <= now.getTime();
+};
+const prettyBR = (iso: string) => {
+  const d = parseISO(iso);
+  const dd = pad2(d.getDate());
+  const mm = pad2(d.getMonth() + 1);
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
 };
 
-/* ------------------------------ 2) BASE COMPONENTS ------------------------------ */
-
-const cx = (...parts: Array<string | undefined | false>) => parts.filter(Boolean).join(" ");
-
-const Card: React.FC<{ title?: string; subtitle?: string; className?: string; children: React.ReactNode; footer?: React.ReactNode }> = ({
-  title,
-  subtitle,
+// -------------------------
+// Design Kit (VIVERCOM)
+// -------------------------
+type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "outline";
+const Button = ({
+  children,
+  variant = "primary",
+  icon: Icon,
+  onClick,
   className = "",
-  children,
-  footer,
-}) => (
-  <div
-    className={cx("p-5 md:p-6", className)}
-    style={{
-      background: Tokens.colors.surface,
-      border: `1px solid ${Tokens.colors.border}`,
-      borderRadius: Tokens.radius.xl,
-      boxShadow: Tokens.shadow.sm,
-    }}
-  >
-    {(title || subtitle) && (
-      <div className="mb-4">
-        {title && <h3 className="text-[17px] font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>{title}</h3>}
-        {subtitle && <p className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>{subtitle}</p>}
-      </div>
-    )}
-    <div className="space-y-4">{children}</div>
-    {footer && (
-      <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${Tokens.colors.background}` }}>
-        {footer}
-      </div>
-    )}
-  </div>
-);
-
-const Badge: React.FC<{ variant?: "default" | "info" | "success" | "warning" | "danger"; children: React.ReactNode }> = ({
-  variant = "default",
-  children,
-}) => {
-  const map: Record<string, { bg: string; fg: string }> = {
-    default: { bg: "#EEF0F4", fg: Tokens.colors.text.secondary },
-    info: { bg: "#EBF5FF", fg: Tokens.colors.primary },
-    success: { bg: "#E9F9EE", fg: Tokens.colors.success },
-    warning: { bg: "#FFF4E5", fg: Tokens.colors.warning },
-    danger: { bg: "#FFEBEC", fg: Tokens.colors.danger },
-  };
-  const s = map[variant];
-  return (
-    <span
-      className="px-2.5 py-1 text-[11px] font-black tracking-tight inline-flex items-center gap-1"
-      style={{ background: s.bg, color: s.fg, borderRadius: "10px" }}
-    >
-      {children}
-    </span>
-  );
-};
-
-const Button: React.FC<{
-  variant?: "primary" | "secondary" | "ghost" | "destructive";
-  icon?: React.ElementType;
+  loading = false,
+  disabled = false,
+  type = "button",
+}: {
+  children: React.ReactNode;
+  variant?: ButtonVariant;
+  icon?: any;
+  onClick?: () => void;
+  className?: string;
   loading?: boolean;
   disabled?: boolean;
-  className?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}> = ({ variant = "primary", icon: Icon, loading, disabled, className = "", onClick, children }) => {
+  type?: "button" | "submit";
+}) => {
   const base =
-    "inline-flex items-center justify-center gap-2 font-black tracking-tight transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100";
-  const size = "px-5 py-3 text-[13px]";
-  const styles: Record<string, React.CSSProperties> = {
-    primary: { background: Tokens.colors.primary, color: "white" },
-    secondary: { background: "#EEF0F4", color: Tokens.colors.text.primary },
-    ghost: { background: "transparent", color: Tokens.colors.primary },
-    destructive: { background: "#FFEBEC", color: Tokens.colors.danger },
+    "flex items-center justify-center font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100";
+  const sizes = "px-5 py-3 rounded-2xl text-sm";
+  const variants: Record<ButtonVariant, string> = {
+    primary: "bg-[#007AFF] text-white shadow-sm hover:brightness-110",
+    secondary: "bg-white text-slate-800 border border-[#E5E5EA] hover:bg-slate-50",
+    ghost: "bg-transparent text-[#007AFF] hover:bg-blue-50",
+    destructive: "bg-red-50 text-[#FF3B30] hover:bg-red-100",
+    outline: "border-2 border-[#E5E5EA] text-[#1C1C1E] hover:bg-slate-50 bg-white",
   };
-
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={cx(base, size, "rounded-2xl", className)}
-      style={styles[variant]}
+      className={`${base} ${sizes} ${variants[variant]} ${className}`}
     >
-      {loading ? <RefreshCw size={18} className="animate-spin" /> : Icon ? <Icon size={18} /> : null}
+      {loading ? (
+        <RefreshCw className="animate-spin mr-2" size={18} />
+      ) : Icon ? (
+        <Icon className="mr-2" size={18} />
+      ) : null}
       {children}
     </button>
   );
 };
 
-const Input: React.FC<{
+const Input = ({
+  label,
+  placeholder,
+  type = "text",
+  icon: Icon,
+  right,
+  value,
+  onChange,
+  ...props
+}: {
   label?: string;
   placeholder?: string;
   type?: string;
-  value?: string;
-  onChange?: (v: string) => void;
+  icon?: any;
   right?: React.ReactNode;
-}> = ({ label, placeholder, type = "text", value, onChange, right }) => (
-  <div className="space-y-1.5">
+  value?: any;
+  onChange?: any;
+  [k: string]: any;
+}) => (
+  <div className="space-y-1.5 w-full">
     {label && (
-      <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
+      <label className="text-[11px] font-black text-[#8E8E93] px-1 uppercase tracking-wider">
         {label}
       </label>
     )}
-    <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl" style={{ background: Tokens.colors.background }}>
+    <div className="relative">
+      {Icon && (
+        <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C7C7CC]" size={18} />
+      )}
       <input
         type={type}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-transparent outline-none text-[14px] placeholder:font-semibold"
-        style={{ color: Tokens.colors.text.primary }}
+        value={value}
+        onChange={onChange}
+        className={`w-full bg-white border border-[#E5E5EA] rounded-2xl ${
+          Icon ? "pl-11" : "pl-4"
+        } pr-12 py-3.5 text-sm focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
+        {...props}
       />
-      {right}
+      {right && <div className="absolute right-3 top-1/2 -translate-y-1/2">{right}</div>}
     </div>
   </div>
 );
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-    {children}
-  </div>
-);
-
-/* ------------------------------ 3) APP TYPES & MOCK DATA ------------------------------ */
-
-type Role = "paciente" | "medico" | "apoio";
-type View = "auth" | "forgot" | "dashboard";
-
-type TabPaciente = "home" | "calendar" | "history" | "access" | "profileUpdate";
-type TabMedico = "patients" | "calendar";
-type TabApoio = "home";
-
-type Patient = {
-  id: string;
-  name: string;
-  code: string;
-  birth: string;
-  blood: string;
-  phone: string;
-  adherence: number; // 0..100
-  medsToday: Array<{ id: string; name: string; dose: string; time: string; note?: string; taken?: boolean }>;
-  appointments: Array<{ id: string; specialty: string; doctor: string; dateLabel: string; day: string; month: string; time: string; type: "Presencial" | "Teleconsulta"; location: string }>;
-  dispositionWeekAvg: number; // 0..10
+type BadgeVariant = "default" | "success" | "info" | "warning" | "danger";
+const Badge = ({ children, variant = "default" }: { children: React.ReactNode; variant?: BadgeVariant }) => {
+  const styles: Record<BadgeVariant, string> = {
+    default: "bg-slate-100 text-slate-600",
+    success: "bg-[#E9F9EE] text-[#34C759]",
+    info: "bg-[#EBF5FF] text-[#007AFF]",
+    warning: "bg-[#FFF4E5] text-[#FF9500]",
+    danger: "bg-[#FFEBEC] text-[#FF3B30]",
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tight uppercase ${styles[variant]}`}>
+      {children}
+    </span>
+  );
 };
 
-const mockPatient: Patient = {
-  id: "p1",
-  name: "Ricardo Souza",
-  code: "VC-123",
-  birth: "12/05/1985",
-  blood: "O+",
-  phone: "(11) 98888-7777",
-  adherence: 78,
-  medsToday: [
-    { id: "m1", name: "Losartana", dose: "50mg", time: "08:00", note: "Em jejum", taken: false },
-    { id: "m2", name: "Anlodipino", dose: "5mg", time: "20:00", taken: false },
-  ],
-  appointments: [
-    {
-      id: "a1",
-      specialty: "Cardiologia",
-      doctor: "Dr. Alberto Rossi",
-      dateLabel: "20 Jan 2026",
-      day: "20",
-      month: "JAN",
-      time: "14:30",
-      type: "Presencial",
-      location: "Clínica Vida, Sala 302",
-    },
-    {
-      id: "a2",
-      specialty: "Clínico Geral",
-      doctor: "Dra. Beatriz",
-      dateLabel: "05 Fev 2026",
-      day: "05",
-      month: "FEV",
-      time: "10:00",
-      type: "Teleconsulta",
-      location: "Link via App",
-    },
-  ],
-  dispositionWeekAvg: 8,
-};
-
-/* ------------------------------ 4) APP ------------------------------ */
-
-export default function App() {
-  // auth
-  const [view, setView] = useState<View>("auth");
-  const [role, setRole] = useState<Role>("paciente");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
-
-  // dashboard
-  const [patient] = useState<Patient>(mockPatient);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-
-  const [tabPaciente, setTabPaciente] = useState<TabPaciente>("home");
-  const [tabMedico, setTabMedico] = useState<TabMedico>("patients");
-  const [tabApoio, setTabApoio] = useState<TabApoio>("home");
-
-  // back sheet (fixed button behavior)
-  const [showBackSheet, setShowBackSheet] = useState(false);
-
-  // patient daily
-  const [dailyText, setDailyText] = useState("");
-  const [disposition, setDisposition] = useState(8);
-
-  // meds toggle (mock)
-  const [meds, setMeds] = useState(patient.medsToday);
-
-  // legal banner
-  const [showLegal, setShowLegal] = useState(true);
-
-  const headerContext = useMemo(() => {
-    if (view === "auth") {
-      return { title: "Acessar conta", subtitle: "Entre com seu e-mail e senha" };
-    }
-    if (view === "forgot") {
-      return { title: "Recuperar senha", subtitle: "Vamos te ajudar a acessar" };
-    }
-    // dashboard
-    if (role === "paciente") {
-      const map: Record<TabPaciente, { title: string; subtitle: string }> = {
-        home: { title: "Paciente", subtitle: "Organização diária" },
-        calendar: { title: "Agenda", subtitle: "Consultas e lembretes" },
-        history: { title: "Histórico", subtitle: "Linha do tempo" },
-        access: { title: "Médicos e Acessos", subtitle: "Controle de compartilhamento" },
-        profileUpdate: { title: "Atualizar cadastro", subtitle: "Dados pessoais e saúde" },
-      };
-      return map[tabPaciente];
-    }
-    if (role === "medico") {
-      if (selectedPatientId) return { title: "Paciente", subtitle: "Visão clínica (somente organizacional)" };
-      return tabMedico === "patients"
-        ? { title: "Médico", subtitle: "Pacientes vinculados" }
-        : { title: "Agenda médica", subtitle: "Consultas do dia" };
-    }
-    return { title: "Rede de apoio", subtitle: "Acompanhamento autorizado" };
-  }, [view, role, tabPaciente, tabMedico, selectedPatientId]);
-
-  function logout() {
-    setView("auth");
-    setSelectedPatientId(null);
-    setTabPaciente("home");
-    setTabMedico("patients");
-    setTabApoio("home");
-    setEmail("");
-    setPassword("");
-  }
-
-  function login() {
-    setIsAuthLoading(true);
-    setTimeout(() => {
-      setIsAuthLoading(false);
-      setView("dashboard");
-    }, 650);
-  }
-
-  function openBackSheet() {
-    // keep the back button fixed on screen, with choices:
-    setShowBackSheet(true);
-  }
-
-  function applyBackAction(action: "switchRole" | "toAuth" | "toProfileUpdate") {
-    setShowBackSheet(false);
-
-    if (action === "toAuth") {
-      logout();
-      return;
-    }
-
-    if (action === "toProfileUpdate") {
-      if (role !== "paciente") {
-        setRole("paciente");
-      }
-      setTabPaciente("profileUpdate");
-      return;
-    }
-
-    if (action === "switchRole") {
-      // go to a simple selector inside auth (keeps app flow)
-      setView("auth");
-      setPassword("");
-      return;
-    }
-  }
-
-  /* ------------------------------ 5) FIXED HEADER (SINGLE) ------------------------------ */
-
-  const StickyTopBar = () => (
-    <div className="sticky top-0 z-50 px-4 md:px-10 pt-4 pb-3">
-      <div
-        className="flex items-center justify-between gap-3 px-4 py-2.5"
-        style={{
-          background: "rgba(255,255,255,0.82)",
-          border: `1px solid ${Tokens.colors.border}`,
-          borderRadius: Tokens.radius.xl,
-          backdropFilter: "blur(18px)",
-          boxShadow: Tokens.shadow.sm,
-        }}
-      >
-        <button
-          onClick={openBackSheet}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl font-black"
-          style={{ color: Tokens.colors.text.secondary, background: Tokens.colors.background }}
-        >
-          <ChevronLeft size={18} />
-          <span className="text-[12px]">Voltar</span>
-        </button>
-
-        <div className="min-w-0 flex-1 text-center">
-          <div className="text-[14px] font-black truncate" style={{ color: Tokens.colors.text.primary }}>
-            {headerContext.title}
+type CardColor = "blue" | "green" | "orange" | "indigo" | "slate";
+const Card = ({
+  children,
+  className = "",
+  title,
+  subtitle,
+  icon: Icon,
+  color = "blue",
+  footer,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+  icon?: any;
+  color?: CardColor;
+  footer?: React.ReactNode;
+}) => {
+  const iconWrap: Record<CardColor, string> = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-green-50 text-green-600",
+    orange: "bg-orange-50 text-orange-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    slate: "bg-slate-100 text-slate-600",
+  };
+  return (
+    <div className={`bg-white rounded-[24px] border border-[#E5E5EA] shadow-sm p-5 ${className}`}>
+      {(title || subtitle) && (
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            {title && <h3 className="text-[16px] font-bold text-[#1C1C1E] tracking-tight">{title}</h3>}
+            {subtitle && <p className="text-[12px] text-[#8E8E93] font-medium">{subtitle}</p>}
           </div>
-          <div className="text-[11px] truncate font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            {headerContext.subtitle}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {view === "dashboard" && role === "paciente" && tabPaciente !== "profileUpdate" && (
-            <button
-              onClick={() => setTabPaciente("profileUpdate")}
-              className="p-2 rounded-2xl"
-              style={{ background: Tokens.colors.background, color: Tokens.colors.primary }}
-              title="Atualizar cadastro"
-            >
-              <Pencil size={18} />
-            </button>
-          )}
-
-          {view === "dashboard" && (
-            <button
-              onClick={logout}
-              className="p-2 rounded-2xl"
-              style={{ background: Tokens.colors.background, color: Tokens.colors.danger }}
-              title="Encerrar sessão"
-            >
-              <LogOut size={18} />
-            </button>
+          {Icon && (
+            <div className={`p-2 rounded-xl ${iconWrap[color]}`}>
+              <Icon size={18} />
+            </div>
           )}
         </div>
-      </div>
+      )}
+      <div className="space-y-3">{children}</div>
+      {footer && <div className="mt-4 pt-4 border-t border-[#F2F2F7]">{footer}</div>}
     </div>
   );
+};
 
-  /* ------------------------------ 6) SCREENS ------------------------------ */
+// -------------------------
+// Types
+// -------------------------
+type Role = "paciente" | "medico" | "apoio";
+type View = "auth-login" | "auth-forgot" | "auth-register" | "auth-select-profile" | "app";
+type Tab = "home" | "calendar" | "history" | "profile";
 
-  const LegalBanner = () =>
-    showLegal ? (
-      <div className="relative">
-        <div
-          className="flex items-start gap-3 p-4 rounded-2xl"
-          style={{ background: "#FFF4E5", border: "1px solid #FFE1B5" }}
-        >
-          <Info size={18} style={{ color: Tokens.colors.warning }} />
-          <div className="text-[12px] font-semibold leading-relaxed" style={{ color: "#7A4A00" }}>
-            <span className="font-black uppercase tracking-widest text-[11px] block mb-1">Aviso legal</span>
-            Este aplicativo é uma ferramenta de organização pessoal. O app <strong>não realiza diagnósticos</strong> e não substitui avaliação
-            médica.
-          </div>
+type Med = {
+  id: number;
+  name: string;
+  dose: string;
+  time: string; // HH:MM
+  taken: boolean;
+  note?: string;
+  source?: string; // Médico/Paciente
+  date: string; // YYYY-MM-DD
+};
+
+type AppointmentStatus = "Agendada" | "Realizada" | "Cancelada";
+type AppointmentType = "Presencial" | "Teleconsulta";
+type Appointment = {
+  id: number;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
+  doctor: string;
+  spec: string;
+  type: AppointmentType;
+  place: string; // address or link
+  status: AppointmentStatus;
+  goal?: string;
+};
+
+type Mood = { date: string; score: number; text: string };
+
+// -------------------------
+// App
+// -------------------------
+export default function App() {
+  const todayISO = useMemo(() => toISODate(new Date()), []);
+
+  const [view, setView] = useState<View>("auth-login");
+  const [userRole, setUserRole] = useState<Role | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null); // placeholder future
+  const [periodFilter, setPeriodFilter] = useState<7 | 30>(7);
+
+  // Auth UI states (mock)
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPass, setAuthPass] = useState("");
+  const [passVisible, setPassVisible] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Add appointment form
+  const [showAddAppointment, setShowAddAppointment] = useState(false);
+  const [apptForm, setApptForm] = useState({
+    date: todayISO,
+    time: "09:00",
+    doctor: "",
+    spec: "",
+    type: "Presencial" as AppointmentType,
+    place: "",
+    goal: "",
+  });
+
+  // Mood quick register
+  const [moodScore, setMoodScore] = useState<number>(8);
+  const [moodText, setMoodText] = useState<string>("");
+
+  // -------------------------
+  // Mock data (now dynamic around today)
+  // -------------------------
+  const [meds, setMeds] = useState<Med[]>([
+    { id: 1, name: "Losartana", dose: "50mg", time: "08:00", taken: true, note: "Em jejum", source: "Médico", date: daysAgoISO(0) },
+    { id: 2, name: "Metformina", dose: "850mg", time: "12:00", taken: false, note: "Após o almoço", source: "Paciente", date: daysAgoISO(0) },
+    { id: 3, name: "Losartana", dose: "50mg", time: "08:00", taken: true, note: "Em jejum", source: "Médico", date: daysAgoISO(1) },
+    { id: 4, name: "Vitamina D", dose: "2000ui", time: "20:00", taken: true, note: "", source: "Médico", date: daysAgoISO(2) },
+    { id: 5, name: "Metformina", dose: "850mg", time: "12:00", taken: true, note: "", source: "Paciente", date: daysAgoISO(2) },
+  ]);
+
+  const [appointments, setAppointments] = useState<Appointment[]>([
+    {
+      id: 1,
+      date: daysAgoISO(-1), // tomorrow
+      time: "14:30",
+      doctor: "Dr. Alberto Rossi",
+      spec: "Cardiologia",
+      type: "Presencial",
+      place: "Av. Paulista, 1000",
+      status: "Agendada",
+      goal: "Check-up anual",
+    },
+    {
+      id: 2,
+      date: daysAgoISO(2),
+      time: "10:00",
+      doctor: "Dra. Elena Silva",
+      spec: "Nutrição",
+      type: "Teleconsulta",
+      place: "https://meet.google.com/xxx-xxxx-xxx",
+      status: "Realizada",
+      goal: "Ajuste de dieta",
+    },
+    {
+      id: 3,
+      date: daysAgoISO(6),
+      time: "16:00",
+      doctor: "Dr. Paulo Mendes",
+      spec: "Clínico Geral",
+      type: "Presencial",
+      place: "Clínica Central",
+      status: "Cancelada",
+      goal: "Retorno",
+    },
+  ]);
+
+  const [dailyMoods, setDailyMoods] = useState<Mood[]>([
+    { date: daysAgoISO(0), score: 8, text: "Me sentindo bem hoje." },
+    { date: daysAgoISO(1), score: 6, text: "Um pouco cansado." },
+    { date: daysAgoISO(2), score: 7, text: "Dia produtivo." },
+    { date: daysAgoISO(4), score: 5, text: "Sono ruim, mais lento." },
+  ]);
+
+  // -------------------------
+  // Filters by period
+  // -------------------------
+  const medsInPeriod = useMemo(() => meds.filter((m) => inLastNDays(m.date, periodFilter)), [meds, periodFilter]);
+  const appsInPeriod = useMemo(
+    () => appointments.filter((a) => inLastNDays(a.date, periodFilter)),
+    [appointments, periodFilter]
+  );
+  const moodsInPeriod = useMemo(() => dailyMoods.filter((m) => inLastNDays(m.date, periodFilter)), [dailyMoods, periodFilter]);
+
+  // -------------------------
+  // KPI calculations (based on selected period)
+  // -------------------------
+  const stats = useMemo(() => {
+    const totalMeds = medsInPeriod.length;
+    const takenMeds = medsInPeriod.filter((m) => m.taken).length;
+    const medAdherence = totalMeds > 0 ? Math.round((takenMeds / totalMeds) * 100) : 0;
+
+    const validApps = appsInPeriod.filter((a) => a.status !== "Cancelada");
+    const realizedApps = validApps.filter((a) => a.status === "Realizada").length;
+    const appAdherence = validApps.length > 0 ? Math.round((realizedApps / validApps.length) * 100) : 0;
+
+    const avgMood =
+      moodsInPeriod.length > 0 ? (moodsInPeriod.reduce((acc, curr) => acc + curr.score, 0) / moodsInPeriod.length).toFixed(1) : "0.0";
+
+    return {
+      medAdherence,
+      appAdherence,
+      avgMood,
+      totalMeds,
+      takenMeds,
+      totalApps: appsInPeriod.length,
+      realizedApps,
+    };
+  }, [medsInPeriod, appsInPeriod, moodsInPeriod]);
+
+  // -------------------------
+  // Navigation logic
+  // -------------------------
+  const handleLogout = () => {
+    setView("auth-login");
+    setUserRole(null);
+    setSelectedPatient(null);
+    setActiveTab("home");
+    setAuthPass("");
+    setPassVisible(false);
+  };
+
+  const handleBack = () => {
+    if (view === "auth-forgot" || view === "auth-register" || view === "auth-select-profile") {
+      setView("auth-login");
+      return;
+    }
+    if (selectedPatient) {
+      setSelectedPatient(null);
+      return;
+    }
+    if (activeTab !== "home") {
+      setActiveTab("home");
+      return;
+    }
+    // already in home
+    if (window.confirm("Deseja sair da conta?")) handleLogout();
+  };
+
+  // -------------------------
+  // Auth handlers (mock)
+  // -------------------------
+  const doLogin = async () => {
+    setAuthLoading(true);
+    setTimeout(() => {
+      setAuthLoading(false);
+      setView("auth-select-profile");
+    }, 650);
+  };
+
+  const doRegister = async () => {
+    setAuthLoading(true);
+    setTimeout(() => {
+      setAuthLoading(false);
+      // after register go to login
+      setView("auth-login");
+      alert("Conta criada (mock). Agora faça login.");
+    }, 700);
+  };
+
+  const doForgot = async () => {
+    setAuthLoading(true);
+    setTimeout(() => {
+      setAuthLoading(false);
+      alert("Se existir uma conta com esse e-mail, enviamos um link de recuperação (mock).");
+      setView("auth-login");
+    }, 700);
+  };
+
+  // -------------------------
+  // App header (single sticky)
+  // -------------------------
+  const Header = ({ title }: { title: string }) => (
+    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-[#E5E5EA] px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-50 rounded-full text-[#007AFF]">
+          <ChevronLeft size={24} />
+        </button>
+        <div className="flex flex-col leading-tight">
+          <h1 className="text-lg font-black tracking-tight uppercase">{title}</h1>
+          <p className="text-[11px] font-bold text-[#8E8E93]">
+            {userRole === "paciente" ? "Paciente" : userRole === "medico" ? "Profissional de Saúde" : "Rede de Apoio"}
+          </p>
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {userRole === "medico" && <Badge variant="info">MÉDICO</Badge>}
+        {userRole === "apoio" && <Badge variant="warning">REDE DE APOIO</Badge>}
         <button
-          onClick={() => setShowLegal(false)}
-          className="absolute top-2 right-2 p-2 rounded-2xl"
-          style={{ color: Tokens.colors.warning, background: "rgba(255,255,255,0.65)" }}
+          onClick={() => setActiveTab("profile")}
+          className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 overflow-hidden"
+          title="Conta"
         >
-          <X size={14} />
+          <User size={20} />
         </button>
       </div>
-    ) : null;
+    </header>
+  );
 
-  const AuthScreen = () => (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div
-            className="inline-flex items-center justify-center p-4"
-            style={{
-              background: Tokens.colors.primary,
-              borderRadius: "22px",
-              boxShadow: "0 18px 40px rgba(0,122,255,0.20)",
+  // -------------------------
+  // Home — meds first, then consults
+  // -------------------------
+  const nextAppointment = useMemo(() => {
+    const future = appointments
+      .filter((a) => a.status === "Agendada")
+      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+    return future[0] || null;
+  }, [appointments]);
+
+  const medsToday = useMemo(() => meds.filter((m) => m.date === todayISO).sort((a, b) => a.time.localeCompare(b.time)), [meds, todayISO]);
+
+  const renderHome = () => (
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+      {userRole === "apoio" && (
+        <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4">
+          <div className="bg-white p-2 rounded-xl text-orange-500">
+            <Info size={20} />
+          </div>
+          <p className="text-xs font-bold text-orange-800">
+            Você está visualizando os dados de: <span className="underline">Carlos Alberto (Paciente)</span>
+          </p>
+        </div>
+      )}
+
+      {/* 1) Agenda de remédios em primeiro */}
+      <section className="space-y-4">
+        <h3 className="text-[10px] font-black text-[#8E8E93] uppercase tracking-widest px-1">
+          {userRole === "apoio" ? "Remédios do Paciente (Hoje)" : "Remédios (Hoje)"}
+        </h3>
+
+        {medsToday.length === 0 ? (
+          <Card title="Sem medicamentos cadastrados para hoje" subtitle="Cadastre via receita/rotina (mock)" icon={Pill} color="slate">
+            <p className="text-sm text-slate-500">Nenhum item encontrado para {prettyBR(todayISO)}.</p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {medsToday.map((m) => (
+              <div
+                key={m.id}
+                className={`bg-white p-4 rounded-[22px] border transition-all flex items-center justify-between ${
+                  m.taken ? "border-[#34C759] bg-green-50/20" : "border-[#E5E5EA]"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                      m.taken ? "bg-[#34C759] text-white" : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    <Pill size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-bold ${m.taken ? "line-through text-slate-400" : ""}`}>{m.name}</p>
+                      <span className="text-[10px] font-black bg-blue-50 text-[#007AFF] px-1.5 py-0.5 rounded uppercase">{m.time}</span>
+                    </div>
+                    <p className="text-xs text-[#8E8E93]">
+                      {m.dose} {m.note ? `• ${m.note}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {userRole !== "apoio" && (
+                  <button
+                    onClick={() => setMeds((prev) => prev.map((med) => (med.id === m.id ? { ...med, taken: !med.taken } : med)))}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      m.taken ? "bg-[#34C759] text-white" : "border-2 border-slate-200 text-slate-400"
+                    }`}
+                    title="Marcar como tomado"
+                  >
+                    <CheckCircle size={22} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 2) Agenda de consultas */}
+      <Card title="Próxima Consulta" subtitle="Agenda de médicos" icon={Calendar} color="blue">
+        {nextAppointment ? (
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              <p className="font-bold">{nextAppointment.doctor}</p>
+              <p className="text-xs text-slate-500">
+                {prettyBR(nextAppointment.date)} às {nextAppointment.time} • {nextAppointment.type}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">{nextAppointment.spec}</p>
+            </div>
+            <Button variant="ghost" className="text-xs" onClick={() => setActiveTab("calendar")}>
+              Ver Agenda
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-slate-500">Nenhuma consulta agendada.</p>
+            <Button variant="ghost" className="text-xs" onClick={() => setActiveTab("calendar")}>
+              Abrir Agenda
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      {/* 3) Disposição / Relato para histórico */}
+      {userRole !== "apoio" && (
+        <Card title="Como está sua disposição hoje?" subtitle="0 muito indisposto • 10 muito disposto" icon={Smile} color="orange">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={moodScore}
+                onChange={(e) => setMoodScore(parseInt(e.target.value, 10))}
+                className="w-full accent-[#007AFF]"
+              />
+              <div className="flex justify-between mt-1 text-[10px] font-black text-[#C7C7CC] uppercase tracking-widest">
+                <span>0</span>
+                <span>10</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
+              <span className="text-2xl font-black text-orange-600">{moodScore}</span>
+            </div>
+          </div>
+
+          <div className="mt-2">
+            <textarea
+              value={moodText}
+              onChange={(e) => setMoodText(e.target.value)}
+              placeholder="Escreva um pequeno relato (sem termos médicos)."
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-blue-100 min-h-[88px]"
+            />
+          </div>
+
+          <Button
+            variant="secondary"
+            className="w-full text-xs"
+            onClick={() => {
+              const exists = dailyMoods.some((m) => m.date === todayISO);
+              const entry: Mood = { date: todayISO, score: moodScore, text: moodText.trim() || "Sem relato informado." };
+              setDailyMoods((prev) => {
+                if (exists) return prev.map((m) => (m.date === todayISO ? entry : m));
+                return [entry, ...prev];
+              });
+              setMoodText("");
+              alert("Registrado no Histórico (mock).");
             }}
           >
-            <Heart size={30} className="text-white" fill="currentColor" />
+            Registrar no Histórico
+          </Button>
+        </Card>
+      )}
+
+      {/* 4) visão rápida para rede de apoio */}
+      {userRole === "apoio" && (
+        <Card title="Aderência Geral" subtitle="Visão rápida do cuidador" icon={Activity} color="green">
+          <div className="flex items-center gap-8 py-4">
+            <div className="text-center">
+              <p className="text-2xl font-black text-green-600">{stats.medAdherence}%</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Medicamentos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black text-blue-600">{stats.appAdherence}%</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Consultas</p>
+            </div>
           </div>
-          <div className="text-3xl font-black italic tracking-tighter" style={{ color: Tokens.colors.text.primary }}>
-            VIVERCOM
+          <Button variant="outline" className="w-full text-xs" onClick={() => setActiveTab("history")}>
+            Ver Detalhes
+          </Button>
+        </Card>
+      )}
+    </div>
+  );
+
+  // -------------------------
+  // Agenda — add appointment + status actions
+  // -------------------------
+  const addAppointment = () => {
+    if (!apptForm.date || !apptForm.time || !apptForm.doctor.trim() || !apptForm.spec.trim() || !apptForm.place.trim()) {
+      alert("Preencha data, hora, médico, especialidade e local/link.");
+      return;
+    }
+    const nextId = Math.max(0, ...appointments.map((a) => a.id)) + 1;
+    const newA: Appointment = {
+      id: nextId,
+      date: apptForm.date,
+      time: apptForm.time,
+      doctor: apptForm.doctor.trim(),
+      spec: apptForm.spec.trim(),
+      type: apptForm.type,
+      place: apptForm.place.trim(),
+      status: "Agendada",
+      goal: apptForm.goal.trim(),
+    };
+    setAppointments((prev) => [newA, ...prev]);
+    setShowAddAppointment(false);
+    setApptForm({ date: todayISO, time: "09:00", doctor: "", spec: "", type: "Presencial", place: "", goal: "" });
+  };
+
+  const setAppointmentStatus = (id: number, status: AppointmentStatus) => {
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+  };
+
+  const renderAgenda = () => {
+    const sorted = [...appointments].sort((a, b) => {
+      const da = parseISO(a.date).getTime();
+      const db = parseISO(b.date).getTime();
+      if (da !== db) return db - da;
+      return b.time.localeCompare(a.time);
+    });
+
+    return (
+      <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-between items-end px-1">
+          <div>
+            <h2 className="text-2xl font-black">Agenda</h2>
+            <p className="text-sm text-[#8E8E93]">
+              {userRole === "apoio" ? "Consultas agendadas do paciente." : "Consultas agendadas e cadastro de futuras."}
+            </p>
           </div>
-          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            Saúde conectada com experiência premium.
-          </div>
+          {userRole !== "apoio" && (
+            <Button icon={Plus} onClick={() => setShowAddAppointment(true)} className="rounded-full px-4 h-11">
+              Nova
+            </Button>
+          )}
         </div>
 
-        <Card>
-          <div className="text-center text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-            Acessar conta
-          </div>
-
-          {/* Role selector */}
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              { id: "paciente", label: "Paciente", icon: User },
-              { id: "medico", label: "Médico", icon: Stethoscope },
-              { id: "apoio", label: "Rede", icon: Users },
-            ] as Array<{ id: Role; label: string; icon: React.ElementType }>).map((r) => {
-              const active = role === r.id;
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => setRole(r.id)}
-                  className="px-3 py-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all"
-                  style={{
-                    background: active ? "#EBF5FF" : Tokens.colors.background,
-                    border: `1px solid ${active ? "#BBDFFF" : Tokens.colors.background}`,
-                    color: active ? Tokens.colors.primary : Tokens.colors.text.secondary,
-                  }}
-                >
-                  <r.icon size={18} />
-                  <span className="text-[11px] font-black tracking-tight">{r.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <Input
-            label="E-mail"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={setEmail}
-            type="email"
-            right={<Mail size={18} style={{ color: Tokens.colors.text.tertiary }} />}
-          />
-          <Input
-            label="Senha"
-            placeholder="••••••••"
-            value={password}
-            onChange={setPassword}
-            type={showPass ? "text" : "password"}
-            right={
-              <button
-                onClick={() => setShowPass((s) => !s)}
-                className="p-2 rounded-xl"
-                style={{ color: Tokens.colors.text.tertiary }}
-                type="button"
-              >
-                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+        {showAddAppointment && (
+          <Card className="border-[#007AFF] border-2 animate-in zoom-in-95 duration-200" title="Nova Consulta" subtitle="Cadastre consultas futuras">
+            <div className="flex justify-end -mt-10">
+              <button onClick={() => setShowAddAppointment(false)} className="p-2 rounded-full hover:bg-slate-50">
+                <X size={20} />
               </button>
-            }
-          />
+            </div>
 
-          <Button className="w-full" icon={Lock} loading={isAuthLoading} onClick={login} disabled={!email || !password}>
-            Entrar
-          </Button>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Data"
+                  type="date"
+                  value={apptForm.date}
+                  onChange={(e: any) => setApptForm((p) => ({ ...p, date: e.target.value }))}
+                />
+                <Input
+                  label="Hora"
+                  type="time"
+                  value={apptForm.time}
+                  onChange={(e: any) => setApptForm((p) => ({ ...p, time: e.target.value }))}
+                />
+              </div>
 
+              <Input
+                label="Médico"
+                placeholder="Nome do médico"
+                value={apptForm.doctor}
+                onChange={(e: any) => setApptForm((p) => ({ ...p, doctor: e.target.value }))}
+              />
+              <Input
+                label="Especialidade"
+                placeholder="Ex: Cardiologia"
+                value={apptForm.spec}
+                onChange={(e: any) => setApptForm((p) => ({ ...p, spec: e.target.value }))}
+              />
+
+              <div className="flex gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100">
+                <button
+                  onClick={() => setApptForm((p) => ({ ...p, type: "Presencial" }))}
+                  className={`flex-1 flex items-center gap-2 text-xs font-black justify-center py-2 rounded-xl transition-all ${
+                    apptForm.type === "Presencial"
+                      ? "bg-white border border-[#E5E5EA] shadow-sm text-slate-800"
+                      : "text-slate-400 hover:bg-white/60"
+                  }`}
+                >
+                  <MapPin size={14} /> Presencial
+                </button>
+                <button
+                  onClick={() => setApptForm((p) => ({ ...p, type: "Teleconsulta" }))}
+                  className={`flex-1 flex items-center gap-2 text-xs font-black justify-center py-2 rounded-xl transition-all ${
+                    apptForm.type === "Teleconsulta"
+                      ? "bg-white border border-[#E5E5EA] shadow-sm text-slate-800"
+                      : "text-slate-400 hover:bg-white/60"
+                  }`}
+                >
+                  <Video size={14} /> Teleconsulta
+                </button>
+              </div>
+
+              <Input
+                label="Local / Link"
+                placeholder={apptForm.type === "Teleconsulta" ? "Cole o link (ex: Meet/Zoom)" : "Endereço"}
+                value={apptForm.place}
+                onChange={(e: any) => setApptForm((p) => ({ ...p, place: e.target.value }))}
+              />
+              <Input
+                label="Objetivo (opcional)"
+                placeholder="Ex: Retorno / Check-up / Ajuste"
+                value={apptForm.goal}
+                onChange={(e: any) => setApptForm((p) => ({ ...p, goal: e.target.value }))}
+              />
+
+              <Button onClick={addAppointment} className="w-full">
+                Agendar
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <div className="space-y-4">
+          {sorted.map((app) => {
+            const statusVariant: BadgeVariant =
+              app.status === "Realizada" ? "success" : app.status === "Cancelada" ? "danger" : "info";
+            const icon = app.type === "Teleconsulta" ? Video : Calendar;
+
+            return (
+              <div key={app.id} className="bg-white rounded-[24px] border border-[#E5E5EA] overflow-hidden shadow-sm">
+                <div className="p-5 flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                        app.status === "Agendada" ? "bg-blue-50 text-[#007AFF]" : "bg-slate-50 text-slate-400"
+                      }`}
+                    >
+                      {React.createElement(icon, { size: 24 })}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-black text-[16px]">{app.doctor}</p>
+                        <Badge variant={statusVariant}>{app.status}</Badge>
+                      </div>
+                      <p className="text-xs text-[#8E8E93] font-black uppercase tracking-widest">{app.spec}</p>
+                      <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <Clock size={14} className="text-[#007AFF]" /> {prettyBR(app.date)} às {app.time}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin size={14} className="text-[#007AFF]" /> {app.type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">{app.place}</p>
+                      {app.goal ? <p className="text-xs text-slate-500 mt-1">Objetivo: {app.goal}</p> : null}
+                    </div>
+                  </div>
+
+                  {userRole !== "apoio" && (
+                    <button className="p-2 text-slate-300 hover:text-slate-500" title="Opções (mock)">
+                      <MoreHorizontal size={20} />
+                    </button>
+                  )}
+                </div>
+
+                {userRole !== "apoio" && (
+                  <div className="bg-[#F9F9FB] px-5 py-3 flex gap-3 border-t border-[#E5E5EA]">
+                    {app.status !== "Cancelada" ? (
+                      <button
+                        onClick={() => setAppointmentStatus(app.id, "Cancelada")}
+                        className="flex-1 py-2 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setAppointmentStatus(app.id, "Agendada")}
+                        className="flex-1 py-2 text-[10px] font-black uppercase text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                      >
+                        Reativar
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setAppointmentStatus(app.id, "Agendada")}
+                      className="flex-1 py-2 text-[10px] font-black uppercase text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                    >
+                      Agendada
+                    </button>
+
+                    <button
+                      onClick={() => setAppointmentStatus(app.id, "Realizada")}
+                      className="flex-1 py-2 text-[10px] font-black uppercase text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                    >
+                      Realizada
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // -------------------------
+  // History — KPIs + mood mini chart + timeline by day
+  // -------------------------
+  const moodSeries = useMemo(() => {
+    const src = [...moodsInPeriod].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+    return src;
+  }, [moodsInPeriod]);
+
+  const timelineDays = useMemo(() => {
+    // use union of days present in moods/meds/appointments within selected period
+    const set = new Set<string>();
+    medsInPeriod.forEach((m) => set.add(m.date));
+    appsInPeriod.forEach((a) => set.add(a.date));
+    moodsInPeriod.forEach((m) => set.add(m.date));
+    const arr = Array.from(set).sort((a, b) => parseISO(b).getTime() - parseISO(a).getTime());
+    return arr;
+  }, [medsInPeriod, appsInPeriod, moodsInPeriod]);
+
+  const renderHistory = () => (
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-end px-1">
+        <div>
+          <h2 className="text-2xl font-black">Histórico</h2>
+          <p className="text-sm text-[#8E8E93]">
+            {userRole === "apoio" ? "Monitorando evolução do paciente." : "Indicadores e linha do tempo do período."}
+          </p>
+        </div>
+        <div className="flex bg-white p-1 rounded-xl border border-[#E5E5EA]">
           <button
-            onClick={() => setView("forgot")}
-            className="w-full text-center text-[12px] font-black tracking-tight"
-            style={{ color: Tokens.colors.primary }}
+            onClick={() => setPeriodFilter(7)}
+            className={`px-3 py-1 text-[10px] font-black rounded-lg ${
+              periodFilter === 7 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"
+            }`}
           >
-            Esqueci minha senha
+            7D
           </button>
+          <button
+            onClick={() => setPeriodFilter(30)}
+            className={`px-3 py-1 text-[10px] font-black rounded-lg ${
+              periodFilter === 30 ? "bg-blue-50 text-[#007AFF]" : "text-slate-400"
+            }`}
+          >
+            30D
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card title="Aderência Med." subtitle="Remédios tomados" icon={Pill} color="green">
+          <div className="flex items-end justify-between">
+            <span className="text-3xl font-black tracking-tighter">{stats.medAdherence}%</span>
+            <div className={`flex items-center text-xs font-bold ${stats.medAdherence >= 70 ? "text-green-500" : "text-red-400"}`}>
+              {stats.medAdherence >= 70 ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
+              {stats.medAdherence >= 70 ? "OK" : "Baixa"}
+            </div>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full mt-2">
+            <div className="h-full bg-green-500 rounded-full" style={{ width: `${stats.medAdherence}%` }} />
+          </div>
+          <p className="text-[10px] text-slate-400 mt-2">
+            {stats.takenMeds} de {stats.totalMeds} doses no período
+          </p>
         </Card>
 
-        <LegalBanner />
+        <Card title="Consultas" subtitle="Aderência" icon={Calendar} color="blue">
+          <div className="flex items-end justify-between">
+            <span className="text-3xl font-black tracking-tighter">{stats.appAdherence}%</span>
+            <div className="flex items-center text-xs font-bold text-slate-400">
+              <Minus size={14} className="mr-1" /> {stats.realizedApps}/{stats.totalApps}
+            </div>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full mt-2">
+            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.appAdherence}%` }} />
+          </div>
+          <p className="text-[10px] text-slate-400 mt-2">Realizadas / registradas no período</p>
+        </Card>
+
+        <Card title="Bem-estar" subtitle="Disposição média" icon={Smile} color="orange">
+          <div className="flex items-end justify-between">
+            <span className="text-3xl font-black tracking-tighter">{stats.avgMood}/10</span>
+            <div className="flex items-center text-xs font-bold text-slate-400">
+              <Minus size={14} className="mr-1" /> período
+            </div>
+          </div>
+
+          {/* mini chart (bars) */}
+          <div className="flex items-end gap-1 h-10 mt-3">
+            {(moodSeries.length ? moodSeries : [{ date: todayISO, score: 0, text: "" }]).map((m, i) => (
+              <div
+                key={`${m.date}-${i}`}
+                className="flex-1 bg-orange-100 rounded-t-sm"
+                style={{ height: `${Math.max(5, m.score * 10)}%` }}
+                title={`${prettyBR(m.date)}: ${m.score}/10`}
+              />
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-2">Histórico de disposição</p>
+        </Card>
+      </div>
+
+      {/* Timeline */}
+      <div className="space-y-8 relative before:absolute before:left-6 before:top-2 before:bottom-0 before:w-0.5 before:bg-[#E5E5EA]">
+        {timelineDays.length === 0 ? (
+          <Card title="Sem registros no período" subtitle="Inclua relatos, medicamentos e consultas">
+            <p className="text-sm text-slate-500">Não há eventos para {periodFilter} dias.</p>
+          </Card>
+        ) : (
+          timelineDays.map((date) => {
+            const mood = dailyMoods.find((m) => m.date === date);
+            const medsDay = meds.filter((m) => m.date === date).sort((a, b) => a.time.localeCompare(b.time));
+            const appsDay = appointments.filter((a) => a.date === date).sort((a, b) => a.time.localeCompare(b.time));
+
+            return (
+              <div key={date} className="relative pl-14 space-y-4">
+                <div className="absolute left-4 top-1 w-4 h-4 rounded-full bg-white border-2 border-[#007AFF] z-10 shadow-sm" />
+                <h3 className="text-[11px] font-black text-[#8E8E93] uppercase tracking-widest bg-white inline-block px-2 -ml-2 rounded">
+                  {prettyBR(date)}
+                </h3>
+
+                <div className="space-y-3">
+                  {/* Mood */}
+                  {mood && (
+                    <div className="bg-white p-4 rounded-2xl border border-[#E5E5EA] shadow-sm">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-black text-[#FF9500] uppercase tracking-tighter">RELATO DO DIA</span>
+                        <Badge variant="warning">NOTA: {mood.score}/10</Badge>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 italic">"{mood.text}"</p>
+                    </div>
+                  )}
+
+                  {/* Meds */}
+                  {medsDay.length > 0 && (
+                    <div className="bg-white p-4 rounded-2xl border border-[#E5E5EA] shadow-sm space-y-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">MEDICAÇÕES</p>
+                      {medsDay.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${m.taken ? "bg-green-500" : "bg-red-400"}`} />
+                            <span className="text-xs font-bold">
+                              {m.name} ({m.time})
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-medium text-slate-400">{m.taken ? "Tomado" : "Pendente"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Apps */}
+                  {appsDay.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`p-4 rounded-2xl border shadow-sm flex items-center justify-between ${
+                        a.status === "Realizada"
+                          ? "bg-green-50/40 border-green-100"
+                          : a.status === "Cancelada"
+                          ? "bg-red-50/40 border-red-100"
+                          : "bg-blue-50/40 border-blue-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Stethoscope size={18} className="text-[#007AFF]" />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">
+                            Consulta: {a.doctor} • {a.time}
+                          </p>
+                          <p className="text-[10px] text-slate-600 font-medium">
+                            {a.spec} • {a.type} • {a.status}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={a.status === "Realizada" ? "success" : a.status === "Cancelada" ? "danger" : "info"}>
+                        {a.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 
-  const ForgotScreen = () => {
-    const [forgotEmail, setForgotEmail] = useState(email);
-    const [sent, setSent] = useState(false);
-    const [sending, setSending] = useState(false);
+  // -------------------------
+  // Profile
+  // -------------------------
+  const renderProfile = () => (
+    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      <Card title="Conta" subtitle="Configurações básicas" icon={Settings} color="slate">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-bold text-slate-800">Sessão ativa</p>
+            <p className="text-xs text-slate-500">{authEmail || "email@exemplo.com"} • {userRole}</p>
+          </div>
+          <Button variant="destructive" icon={LogOut} onClick={handleLogout}>
+            Sair
+          </Button>
+        </div>
+      </Card>
 
-    function send() {
-      setSending(true);
-      setTimeout(() => {
-        setSending(false);
-        setSent(true);
-      }, 700);
-    }
+      <Card title="Atualização de cadastro" subtitle="Tela mock (placeholder)" icon={User} color="blue">
+        <p className="text-sm text-slate-500">
+          Aqui entra a tela de atualização de cadastro do paciente / rede de apoio / médico (conforme permissões).
+        </p>
+        <Button variant="outline" className="w-full" onClick={() => alert("Placeholder de atualização de cadastro (mock).")}>
+          Abrir Atualização
+        </Button>
+      </Card>
 
+      <Card title="Aviso Legal" subtitle="Sem diagnóstico / sem sugestão" icon={Info} color="orange">
+        <p className="text-sm text-slate-600">
+          O VIVERCOM é uma ferramenta de organização pessoal. O app não realiza diagnósticos, não sugere condutas e não substitui avaliação médica.
+        </p>
+      </Card>
+    </div>
+  );
+
+  // -------------------------
+  // AUTH SCREENS
+  // -------------------------
+  if (view === "auth-login") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: Tokens.colors.background }}>
-        <div className="w-full max-w-sm space-y-6">
+      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full space-y-8">
           <div className="text-center space-y-2">
-            <div className="text-2xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-              Recuperar senha
+            <div className="inline-flex bg-[#007AFF] p-4 rounded-[22px] shadow-xl shadow-blue-100 mb-2">
+              <Heart className="text-white" size={32} fill="currentColor" />
             </div>
-            <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-              Enviaremos um link de redefinição.
+            <h1 className="text-3xl font-black text-[#1C1C1E] tracking-tighter italic">VIVERCOM</h1>
+            <h2 className="text-xl font-bold">Acesso ao Portal</h2>
+          </div>
+
+          <Card>
+            <Input
+              label="E-mail"
+              placeholder="seu@email.com"
+              icon={Mail}
+              value={authEmail}
+              onChange={(e: any) => setAuthEmail(e.target.value)}
+            />
+            <Input
+              label="Senha"
+              type={passVisible ? "text" : "password"}
+              placeholder="••••••••"
+              icon={Lock}
+              value={authPass}
+              onChange={(e: any) => setAuthPass(e.target.value)}
+              right={
+                <button
+                  type="button"
+                  onClick={() => setPassVisible((v) => !v)}
+                  className="p-2 rounded-full hover:bg-slate-50 text-slate-400"
+                  title={passVisible ? "Ocultar" : "Mostrar"}
+                >
+                  {passVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
+
+            <div className="flex items-center justify-between">
+              <button
+                className="text-xs font-black text-[#007AFF] hover:underline"
+                onClick={() => setView("auth-forgot")}
+                type="button"
+              >
+                Esqueci minha senha
+              </button>
+              <button
+                className="text-xs font-black text-slate-500 hover:underline"
+                onClick={() => setView("auth-register")}
+                type="button"
+              >
+                Criar conta
+              </button>
+            </div>
+
+            <Button
+              onClick={doLogin}
+              className="w-full mt-2"
+              loading={authLoading}
+              disabled={!authEmail.trim() || !authPass.trim()}
+            >
+              Entrar
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "auth-forgot") {
+    return (
+      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full space-y-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setView("auth-login")} className="p-2 rounded-full hover:bg-white text-[#007AFF]">
+              <ChevronLeft size={22} />
+            </button>
+            <div>
+              <h1 className="text-xl font-black">Recuperar senha</h1>
+              <p className="text-xs font-bold text-[#8E8E93]">Enviaremos um link para seu e-mail.</p>
             </div>
           </div>
 
           <Card>
-            <Input label="E-mail" placeholder="seu@email.com" value={forgotEmail} onChange={setForgotEmail} type="email" />
-
-            {!sent ? (
-              <Button className="w-full" icon={KeyRound} loading={sending} onClick={send} disabled={!forgotEmail}>
-                Enviar link
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                <div
-                  className="p-4 rounded-2xl text-[12px] font-semibold"
-                  style={{ background: "#E9F9EE", color: Tokens.colors.success }}
-                >
-                  Link enviado! Verifique seu e-mail.
-                </div>
-                <Button className="w-full" variant="secondary" onClick={() => setView("auth")}>
-                  Voltar para login
-                </Button>
-              </div>
-            )}
+            <Input
+              label="E-mail"
+              placeholder="seu@email.com"
+              icon={Mail}
+              value={authEmail}
+              onChange={(e: any) => setAuthEmail(e.target.value)}
+            />
+            <Button onClick={doForgot} className="w-full" loading={authLoading} disabled={!authEmail.trim()}>
+              Enviar link
+            </Button>
           </Card>
-
-          <LegalBanner />
         </div>
       </div>
     );
-  };
+  }
 
-  /* ------------------------------ 7) DASHBOARDS ------------------------------ */
+  if (view === "auth-register") {
+    const [rRole, setRRole] = useState<Role>("paciente");
+    const [rName, setRName] = useState("");
+    const [rPass, setRPass] = useState("");
+    const [rPassVisible, setRPassVisible] = useState(false);
 
-  const PatientHome = () => (
-    <div className="space-y-8">
-      {/* 1) Agenda de remédios em primeiro */}
-      <section className="space-y-3">
-        <SectionTitle>Agenda de remédios</SectionTitle>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {meds.map((m) => (
-            <Card key={m.id} className="relative">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-xl" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
-                      <Clock size={18} />
-                    </div>
-                    <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                      {m.time}
-                    </div>
-                    {m.note ? <Badge variant="warning">{m.note}</Badge> : null}
-                  </div>
-                  <div className="text-[16px] font-black" style={{ color: Tokens.colors.text.primary }}>
-                    {m.name}
-                  </div>
-                  <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                    Dose: {m.dose}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() =>
-                    setMeds((prev) => prev.map((x) => (x.id === m.id ? { ...x, taken: !x.taken } : x)))
-                  }
-                  className="w-12 h-12 rounded-2xl inline-flex items-center justify-center transition-all active:scale-[0.98]"
-                  style={{
-                    background: m.taken ? "#E9F9EE" : Tokens.colors.background,
-                    color: m.taken ? Tokens.colors.success : Tokens.colors.text.tertiary,
-                    border: `1px solid ${Tokens.colors.border}`,
-                  }}
-                  title={m.taken ? "Desmarcar" : "Confirmar"}
-                >
-                  {m.taken ? <CheckCircle size={22} /> : <Plus size={22} />}
-                </button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* 2) Consultas */}
-      <section className="space-y-3">
-        <SectionTitle>Agenda de consultas</SectionTitle>
-
-        <div className="space-y-4">
-          {patient.appointments.map((a) => (
-            <Card key={a.id} className="hover:shadow-md transition-all">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-2xl text-center" style={{ background: "#EEF0F4", minWidth: 76 }}>
-                    <div className="text-[10px] font-black uppercase" style={{ color: Tokens.colors.text.secondary }}>
-                      {a.month}
-                    </div>
-                    <div className="text-[22px] font-black" style={{ color: Tokens.colors.text.primary }}>
-                      {a.day}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={a.type === "Teleconsulta" ? "info" : "success"}>
-                        {a.type === "Teleconsulta" ? (
-                          <span className="inline-flex items-center gap-1">
-                            <Video size={12} /> Teleconsulta
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin size={12} /> Presencial
-                          </span>
-                        )}
-                      </Badge>
-                      <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                        {a.time}
-                      </span>
-                    </div>
-                    <div className="text-[16px] font-black">{a.specialty}</div>
-                    <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                      {a.doctor} • {a.location}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="secondary" icon={Info} className="px-4 py-2">
-                    Detalhes
-                  </Button>
-                  <Button icon={Calendar} className="px-4 py-2">
-                    Confirmar
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* 3) Relato + disposição */}
-      <section className="space-y-3">
-        <SectionTitle>Relato e disposição</SectionTitle>
-
-        <Card title="Relato diário" subtitle="Texto simples. Sem análise clínica automática.">
-          <textarea
-            value={dailyText}
-            onChange={(e) => setDailyText(e.target.value)}
-            className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
-            style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
-            placeholder="Como você está se sentindo hoje?"
-          />
-
-          <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="inline-flex items-center gap-2 text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                <Thermometer size={16} />
-                Como está sua disposição hoje
-              </div>
-
-              <div className="text-[20px] font-black" style={{ color: Tokens.colors.primary }}>
-                {disposition}/10
-              </div>
-            </div>
-
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={disposition}
-              onChange={(e) => setDisposition(parseInt(e.target.value, 10))}
-              className="w-full"
-              style={{ accentColor: Tokens.colors.primary }}
-            />
-
-            <div className="flex justify-between mt-2 text-[11px] font-black" style={{ color: Tokens.colors.text.secondary }}>
-              <span>0 muito indisposto</span>
-              <span>10 muito disposto</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button icon={Smile}>Salvar</Button>
-          </div>
-        </Card>
-      </section>
-
-      {/* 4) Aderência do tratamento */}
-      <section className="space-y-3">
-        <SectionTitle>Aderência do mês</SectionTitle>
-
-        <Card title="Aderência ao tratamento" subtitle="Percentual de execução ao longo do mês (mock).">
-          <div className="flex items-center justify-between">
-            <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-              Progresso mensal
-            </div>
-            <Badge variant={patient.adherence >= 80 ? "success" : patient.adherence >= 60 ? "warning" : "danger"}>
-              {patient.adherence}%
-            </Badge>
-          </div>
-
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: "#EEF0F4" }}>
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${patient.adherence}%`,
-                background: patient.adherence >= 80 ? Tokens.colors.success : patient.adherence >= 60 ? Tokens.colors.warning : Tokens.colors.danger,
-              }}
-            />
-          </div>
-
-          <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            Meta sugerida: 85%
-          </div>
-        </Card>
-      </section>
-    </div>
-  );
-
-  const PatientCalendar = () => (
-    <div className="space-y-8">
-      <SectionTitle>Consultas</SectionTitle>
-      <div className="space-y-4">
-        {patient.appointments.map((a) => (
-          <Card key={a.id}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant={a.type === "Teleconsulta" ? "info" : "success"}>{a.type}</Badge>
-                  <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                    {a.dateLabel} • {a.time}
-                  </span>
-                </div>
-                <div className="text-[16px] font-black">{a.specialty}</div>
-                <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                  {a.doctor} • {a.location}
-                </div>
-              </div>
-              <Button icon={Calendar} className="px-4 py-2">
-                Confirmar
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
-  const PatientHistory = () => (
-    <div className="space-y-8">
-      <SectionTitle>Linha do tempo</SectionTitle>
-      {[1, 2, 3].map((i) => (
-        <Card key={i}>
-          <div className="flex items-center justify-between">
-            <Badge variant="info">14 Jan 2026</Badge>
-            <span className="text-[12px] font-black" style={{ color: Tokens.colors.primary }}>
-              Disposição: {Math.max(0, Math.min(10, disposition - (i - 1)))} /10
-            </span>
-          </div>
-          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            Registro: “{dailyText || "Senti melhora durante o dia e consegui manter a rotina."}”
-          </div>
-          <div className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            <CheckCircle size={16} style={{ color: Tokens.colors.success }} /> Medicação registrada
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-
-  const PatientAccess = () => (
-    <div className="space-y-8">
-      <SectionTitle>Vínculos</SectionTitle>
-
-      <Card
-        title="Seu código de vinculação"
-        subtitle="Forneça ao médico para solicitar vínculo."
-        footer={
-          <Button variant="secondary" icon={ClipboardList} className="w-full">
-            Copiar código
-          </Button>
-        }
-      >
-        <div className="flex items-center justify-between">
-          <div className="text-3xl font-black tracking-tight" style={{ color: Tokens.colors.text.primary }}>
-            {patient.code}
-          </div>
-          <Badge variant="info">Paciente</Badge>
-        </div>
-      </Card>
-
-      <Card title="Médicos autorizados" subtitle="Controle quem pode ver seus dados.">
-        <div className="flex items-center justify-between p-3 rounded-2xl" style={{ background: Tokens.colors.background }}>
+    return (
+      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full space-y-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
-              <Stethoscope size={20} />
-            </div>
+            <button onClick={() => setView("auth-login")} className="p-2 rounded-full hover:bg-white text-[#007AFF]">
+              <ChevronLeft size={22} />
+            </button>
             <div>
-              <div className="text-[14px] font-black">Dr. Alberto Rossi</div>
-              <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                Cardiologia • desde Jan/2026
-              </div>
+              <h1 className="text-xl font-black">Criar conta</h1>
+              <p className="text-xs font-bold text-[#8E8E93]">Fluxo mock para validação de layout.</p>
             </div>
           </div>
 
-          <Button variant="destructive" icon={Trash2} className="px-4 py-2">
-            Revogar
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-
-  const PatientProfileUpdate = () => (
-    <div className="space-y-8">
-      <SectionTitle>Dados do cadastro</SectionTitle>
-
-      <Card title="Dados pessoais" subtitle="Atualize informações essenciais.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Nome completo" placeholder="Ex: Ricardo Souza" value={patient.name} onChange={() => {}} />
-          <Input label="Telefone" placeholder="(00) 00000-0000" value={patient.phone} onChange={() => {}} />
-          <Input label="Data de nascimento" placeholder="DD/MM/AAAA" value={patient.birth} onChange={() => {}} />
-          <Input label="Tipo sanguíneo" placeholder="O+" value={patient.blood} onChange={() => {}} />
-          <Input label="Endereço" placeholder="Rua, número, bairro" />
-          <Input label="Plano de saúde" placeholder="Nome / número" />
-        </div>
-
-        <div className="flex gap-3 justify-end">
-          <Button variant="secondary">Cancelar</Button>
-          <Button icon={RefreshCw}>Salvar alterações</Button>
-        </div>
-      </Card>
-
-      <Card title="Saúde (declaratório)" subtitle="Texto simples. Sem validação clínica.">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-1.5">
-            <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-              Condições pré-existentes
-            </label>
-            <textarea
-              className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
-              style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
-              placeholder="Ex: hipertensão leve, alergias..."
+          <Card>
+            <Input label="Nome" placeholder="Seu nome" icon={User} value={rName} onChange={(e: any) => setRName(e.target.value)} />
+            <Input
+              label="E-mail"
+              placeholder="seu@email.com"
+              icon={Mail}
+              value={authEmail}
+              onChange={(e: any) => setAuthEmail(e.target.value)}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="px-1 text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-              Medicamentos de uso contínuo
-            </label>
-            <textarea
-              className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
-              style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
-              placeholder="Ex: Losartana 50mg..."
-            />
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-
-  const DoctorDashboard = () => {
-    const patients = [patient];
-    const selected = selectedPatientId ? patients.find((p) => p.id === selectedPatientId) : null;
-
-    if (!selected) {
-      return (
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                Pacientes ativos
-              </div>
-              <div className="text-4xl font-black mt-2">1</div>
-            </Card>
-            <Card>
-              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                Consultas hoje
-              </div>
-              <div className="text-4xl font-black mt-2">2</div>
-            </Card>
-            <Card>
-              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                Alertas
-              </div>
-              <div className="text-4xl font-black mt-2">0</div>
-            </Card>
-          </div>
-
-          <Card
-            title="Meus pacientes"
-            subtitle="Clique para abrir o prontuário organizacional."
-            footer={<Button icon={Search} className="w-full">Vincular novo paciente</Button>}
-          >
-            <div className="space-y-3">
-              {patients.map((p) => (
+            <Input
+              label="Senha"
+              type={rPassVisible ? "text" : "password"}
+              placeholder="••••••••"
+              icon={Lock}
+              value={rPass}
+              onChange={(e: any) => setRPass(e.target.value)}
+              right={
                 <button
-                  key={p.id}
-                  onClick={() => setSelectedPatientId(p.id)}
-                  className="w-full p-4 rounded-2xl flex items-center justify-between transition-all hover:shadow-sm"
-                  style={{ background: Tokens.colors.background }}
+                  type="button"
+                  onClick={() => setRPassVisible((v) => !v)}
+                  className="p-2 rounded-full hover:bg-slate-50 text-slate-400"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "#EBF5FF", color: Tokens.colors.primary }}>
-                      <User />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-[15px] font-black">{p.name}</div>
-                      <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                        {p.code} • {p.phone}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} style={{ color: Tokens.colors.text.tertiary }} />
+                  {rPassVisible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-              ))}
+              }
+            />
+
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3">
+              <p className="text-[10px] font-black text-[#8E8E93] uppercase tracking-widest mb-2">Perfil</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRRole("paciente")}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase ${
+                    rRole === "paciente" ? "bg-white border border-[#E5E5EA] shadow-sm text-slate-800" : "text-slate-400 hover:bg-white/60"
+                  }`}
+                >
+                  Paciente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRRole("apoio")}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase ${
+                    rRole === "apoio" ? "bg-white border border-[#E5E5EA] shadow-sm text-slate-800" : "text-slate-400 hover:bg-white/60"
+                  }`}
+                >
+                  Apoio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRRole("medico")}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase ${
+                    rRole === "medico" ? "bg-white border border-[#E5E5EA] shadow-sm text-slate-800" : "text-slate-400 hover:bg-white/60"
+                  }`}
+                >
+                  Médico
+                </button>
+              </div>
             </div>
+
+            <Button
+              onClick={doRegister}
+              className="w-full"
+              loading={authLoading}
+              disabled={!rName.trim() || !authEmail.trim() || rPass.length < 6}
+              icon={Plus}
+            >
+              Criar conta
+            </Button>
+
+            <p className="text-[11px] text-slate-400 font-bold">
+              Obs.: este cadastro é demonstrativo. Integração real com backend fica para o dev.
+            </p>
           </Card>
-
-          <LegalBanner />
         </div>
-      );
-    }
-
-    return (
-      <div className="space-y-8">
-        <Card
-          title={selected.name}
-          subtitle={`Código ${selected.code} • Nasc. ${selected.birth}`}
-          footer={
-            <div className="flex gap-2">
-              <Button variant="secondary" icon={Trash2} className="w-full">
-                Encerrar vínculo
-              </Button>
-              <Button icon={Plus} className="w-full">
-                Nova prescrição
-              </Button>
-            </div>
-          }
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
-              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                Dados
-              </div>
-              <div className="mt-3 space-y-2 text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                <div className="flex justify-between">
-                  <span>Tipo sanguíneo</span>
-                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.blood}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Telefone</span>
-                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.phone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Aderência (mês)</span>
-                  <span className="font-black" style={{ color: Tokens.colors.text.primary }}>{selected.adherence}%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
-              <div className="text-[12px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                Relato (somente leitura)
-              </div>
-              <div className="mt-3 text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                “{dailyText || "Paciente relata evolução estável, sem eventos relevantes hoje."}”
-              </div>
-              <div className="mt-3">
-                <Badge variant="info">Disposição: {disposition}/10</Badge>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Notas clínicas" subtitle="Uso interno. (mock)">
-          <textarea
-            className="w-full p-4 rounded-2xl border-0 outline-none text-[14px]"
-            style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}
-            placeholder="Digite suas notas aqui..."
-          />
-          <div className="flex justify-end">
-            <Button icon={CheckCircle}>Salvar nota</Button>
-          </div>
-        </Card>
-
-        <Button variant="ghost" icon={ChevronLeft} onClick={() => setSelectedPatientId(null)} className="w-full">
-          Voltar aos pacientes
-        </Button>
-
-        <LegalBanner />
       </div>
     );
-  };
+  }
 
-  const SupportDashboard = () => (
-    <div className="space-y-8">
-      <Card title="Rede de apoio" subtitle="Acesso limitado (mock).">
-        <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
-          <div className="text-[13px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-            Você está acompanhando:
-          </div>
-          <div className="text-[16px] font-black mt-1">{patient.name}</div>
-          <div className="text-[12px] font-semibold mt-2" style={{ color: Tokens.colors.text.secondary }}>
-            Acesso: agenda de medicamentos e consultas.
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {patient.medsToday.slice(0, 2).map((m) => (
-            <Card key={m.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: Tokens.colors.text.secondary }}>
-                    {m.time}
-                  </div>
-                  <div className="text-[15px] font-black">{m.name}</div>
-                  <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                    {m.dose}
-                  </div>
-                </div>
-                <Badge variant={m.taken ? "success" : "warning"}>{m.taken ? "Tomado" : "Pendente"}</Badge>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </Card>
-
-      <LegalBanner />
-    </div>
-  );
-
-  const Dashboard = () => {
-    const isPaciente = role === "paciente";
-    const isMedico = role === "medico";
-    const isApoio = role === "apoio";
-
-    // sidebar items per role
-    const sideItems = isPaciente
-      ? [
-          { id: "home", label: "Painel geral", icon: Activity as any },
-          { id: "calendar", label: "Agenda", icon: Calendar as any },
-          { id: "history", label: "Histórico", icon: FileCheck as any },
-          { id: "access", label: "Médicos", icon: Shield as any },
-          { id: "profileUpdate", label: "Cadastro", icon: Pencil as any },
-        ]
-      : isMedico
-      ? [
-          { id: "patients", label: "Pacientes", icon: ClipboardList as any },
-          { id: "calendar", label: "Agenda médica", icon: Calendar as any },
-        ]
-      : [{ id: "home", label: "Resumo", icon: Activity as any }];
-
-    const currentTabId = isPaciente ? tabPaciente : isMedico ? tabMedico : tabApoio;
-
-    function setTab(id: string) {
-      if (isPaciente) setTabPaciente(id as TabPaciente);
-      else if (isMedico) setTabMedico(id as TabMedico);
-      else setTabApoio(id as TabApoio);
-
-      if (isMedico && id === "patients") setSelectedPatientId(null);
-    }
-
+  if (view === "auth-select-profile") {
     return (
-      <div className="min-h-screen flex" style={{ background: Tokens.colors.background, color: Tokens.colors.text.primary }}>
-        {/* Sidebar (desktop) */}
-        <aside
-          className="hidden md:flex flex-col w-72 p-8 sticky top-0 h-screen"
-          style={{ background: "rgba(255,255,255,0.82)", borderRight: `1px solid ${Tokens.colors.border}`, backdropFilter: "blur(18px)" }}
-        >
-          <div className="flex items-center gap-3 mb-10">
-            <div className="p-2 rounded-xl" style={{ background: Tokens.colors.primary }}>
-              <Heart size={16} className="text-white" fill="currentColor" />
+      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-6">
+        <div className="max-w-sm w-full space-y-4">
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={() => setView("auth-login")} className="p-2 rounded-full hover:bg-white text-[#007AFF]">
+              <ChevronLeft size={22} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">Selecione seu perfil</h2>
+              <p className="text-xs font-bold text-[#8E8E93]">Mesmo login, diferentes permissões.</p>
             </div>
-            <div className="text-[16px] font-black italic tracking-tight">VIVERCOM</div>
           </div>
-
-          <nav className="space-y-2 flex-1">
-            {sideItems.map((it) => {
-              const active = currentTabId === it.id;
-              return (
-                <button
-                  key={it.id}
-                  onClick={() => setTab(it.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black transition-all"
-                  style={{
-                    background: active ? Tokens.colors.primary : "transparent",
-                    color: active ? "white" : Tokens.colors.text.secondary,
-                  }}
-                >
-                  <it.icon size={20} />
-                  <span className="text-[13px]">{it.label}</span>
-                </button>
-              );
-            })}
-          </nav>
 
           <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black"
-            style={{ color: Tokens.colors.danger }}
+            onClick={() => {
+              setUserRole("paciente");
+              setView("app");
+              setActiveTab("home");
+            }}
+            className="w-full p-5 bg-white rounded-3xl border border-[#E5E5EA] flex items-center gap-4 hover:border-blue-400 transition-all group"
           >
-            <ChevronLeft size={20} />
-            Encerrar sessão
+            <div className="bg-blue-50 p-3 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <User size={24} />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Paciente</p>
+              <p className="text-xs text-slate-500">Minha jornada de saúde</p>
+            </div>
           </button>
+
+          <button
+            onClick={() => {
+              setUserRole("apoio");
+              setView("app");
+              setActiveTab("home");
+            }}
+            className="w-full p-5 bg-white rounded-3xl border border-[#E5E5EA] flex items-center gap-4 hover:border-orange-400 transition-all group"
+          >
+            <div className="bg-orange-50 p-3 rounded-2xl text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+              <HeartHandshake size={24} />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Rede de Apoio</p>
+              <p className="text-xs text-slate-500">Cuidar e monitorar</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              setUserRole("medico");
+              setView("app");
+              setActiveTab("home");
+            }}
+            className="w-full p-5 bg-white rounded-3xl border border-[#E5E5EA] flex items-center gap-4 hover:border-indigo-400 transition-all group"
+          >
+            <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <Stethoscope size={24} />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Profissional de Saúde</p>
+              <p className="text-xs text-slate-500">Gestão clínica e técnica</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------
+  // APP Shell
+  // -------------------------
+  if (view === "app") {
+    const headerTitle =
+      activeTab === "home" ? "Painel de Saúde" : activeTab === "calendar" ? "Agenda" : activeTab === "history" ? "Histórico" : "Conta";
+
+    return (
+      <div className="min-h-screen bg-[#F2F2F7] flex flex-col md:flex-row text-[#1C1C1E]">
+        {/* Sidebar Desktop */}
+        <aside className="w-72 bg-white border-r border-[#E5E5EA] p-8 hidden md:flex flex-col sticky top-0 h-screen">
+          <div className="flex items-center space-x-3 mb-12">
+            <div className="bg-[#007AFF] p-1.5 rounded-lg shadow-lg shadow-blue-100">
+              <Heart className="text-white" size={16} fill="currentColor" />
+            </div>
+            <h1 className="text-lg font-black tracking-tighter italic">VIVERCOM</h1>
+          </div>
+
+          <nav className="flex-1 space-y-2">
+            {[
+              { id: "home" as Tab, label: "Início", icon: Layout },
+              { id: "calendar" as Tab, label: "Agenda", icon: Calendar },
+              { id: "history" as Tab, label: "Histórico", icon: History },
+              { id: "profile" as Tab, label: "Conta", icon: Settings },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${
+                  activeTab === item.id ? "bg-[#007AFF] text-white shadow-xl shadow-blue-200" : "text-[#8E8E93] hover:bg-slate-50"
+                }`}
+              >
+                <item.icon size={20} />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-6 border-t border-slate-100">
+            <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 text-red-500 font-bold text-sm">
+              <LogOut size={18} /> Sair
+            </button>
+          </div>
         </aside>
 
         {/* Main */}
-        <div className="flex-1">
-          <StickyTopBar />
+        <div className="flex-1 flex flex-col">
+          <Header title={headerTitle} />
 
-          <main className="px-4 md:px-10 pb-28 md:pb-10 max-w-5xl mx-auto w-full">
-            {isPaciente && tabPaciente === "home" && <PatientHome />}
-            {isPaciente && tabPaciente === "calendar" && <PatientCalendar />}
-            {isPaciente && tabPaciente === "history" && <PatientHistory />}
-            {isPaciente && tabPaciente === "access" && <PatientAccess />}
-            {isPaciente && tabPaciente === "profileUpdate" && <PatientProfileUpdate />}
-
-            {isMedico && tabMedico === "patients" && <DoctorDashboard />}
-            {isMedico && tabMedico === "calendar" && (
-              <div className="space-y-8">
-                <SectionTitle>Agenda médica</SectionTitle>
-                <Card title="Hoje" subtitle="Consultas do dia (mock)">
-                  <div className="p-4 rounded-2xl" style={{ background: Tokens.colors.background }}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[15px] font-black">Cardiologia — Ricardo Souza</div>
-                        <div className="text-[12px] font-semibold" style={{ color: Tokens.colors.text.secondary }}>
-                          14:30 • Presencial • Clínica Vida
-                        </div>
-                      </div>
-                      <Badge variant="info">Em breve</Badge>
-                    </div>
-                  </div>
-                </Card>
-                <LegalBanner />
-              </div>
-            )}
-
-            {isApoio && tabApoio === "home" && <SupportDashboard />}
+          <main className="flex-1 p-6 md:p-12 pb-32 max-w-4xl mx-auto w-full">
+            {activeTab === "home" && renderHome()}
+            {activeTab === "calendar" && renderAgenda()}
+            {activeTab === "history" && renderHistory()}
+            {activeTab === "profile" && renderProfile()}
           </main>
-
-          {/* Mobile Bottom Nav */}
-          <nav
-            className="md:hidden fixed bottom-6 left-6 right-6 h-20 flex items-center justify-around px-4 z-50"
-            style={{
-              background: "rgba(255,255,255,0.82)",
-              border: `1px solid ${Tokens.colors.border}`,
-              borderRadius: "32px",
-              backdropFilter: "blur(18px)",
-              boxShadow: Tokens.shadow.md,
-            }}
-          >
-            {(role === "paciente"
-              ? [
-                  { id: "home", icon: Activity },
-                  { id: "calendar", icon: Calendar },
-                  { id: "history", icon: FileCheck },
-                  { id: "access", icon: Shield },
-                ]
-              : role === "medico"
-              ? [
-                  { id: "patients", icon: ClipboardList },
-                  { id: "calendar", icon: Calendar },
-                ]
-              : [{ id: "home", icon: Activity }]
-            ).map((it) => {
-              const active = currentTabId === it.id;
-              return (
-                <button
-                  key={it.id}
-                  onClick={() => setTab(it.id)}
-                  className="p-3 rounded-2xl transition-all"
-                  style={{
-                    background: active ? Tokens.colors.primary : "transparent",
-                    color: active ? "white" : Tokens.colors.text.secondary,
-                  }}
-                >
-                  <it.icon size={24} />
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Back Sheet (fixed back button options) */}
-          {showBackSheet && (
-            <div className="fixed inset-0 z-[80]">
-              <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} onClick={() => setShowBackSheet(false)} />
-              <div
-                className="absolute left-0 right-0 bottom-0 p-6"
-                style={{
-                  background: "rgba(255,255,255,0.92)",
-                  borderTop: `1px solid ${Tokens.colors.border}`,
-                  borderTopLeftRadius: "28px",
-                  borderTopRightRadius: "28px",
-                  backdropFilter: "blur(18px)",
-                  boxShadow: Tokens.shadow.md,
-                }}
-              >
-                <div className="max-w-lg mx-auto space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[14px] font-black">Voltar</div>
-                    <button
-                      onClick={() => setShowBackSheet(false)}
-                      className="p-2 rounded-2xl"
-                      style={{ background: Tokens.colors.background, color: Tokens.colors.text.secondary }}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    <Button variant="secondary" icon={Users} onClick={() => applyBackAction("switchRole")} className="w-full">
-                      Voltar e escolher perfil (Paciente / Médico / Rede)
-                    </Button>
-
-                    <Button variant="secondary" icon={Pencil} onClick={() => applyBackAction("toProfileUpdate")} className="w-full">
-                      Ir para atualização de cadastro
-                    </Button>
-
-                    <Button variant="destructive" icon={ChevronLeft} onClick={() => applyBackAction("toAuth")} className="w-full">
-                      Voltar para login
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Mobile Nav */}
+        <nav className="md:hidden fixed bottom-6 left-6 right-6 bg-white/80 backdrop-blur-2xl border border-[#E5E5EA] rounded-[32px] h-20 shadow-2xl flex items-center justify-around px-4 z-50">
+          {[
+            { id: "home" as Tab, icon: Layout },
+            { id: "calendar" as Tab, icon: Calendar },
+            { id: "history" as Tab, icon: History },
+            { id: "profile" as Tab, icon: Settings },
+          ].map((btn) => (
+            <button
+              key={btn.id}
+              onClick={() => setActiveTab(btn.id)}
+              className={`p-3 rounded-2xl transition-all ${
+                activeTab === btn.id ? "bg-[#007AFF] text-white shadow-lg shadow-blue-200" : "text-[#8E8E93]"
+              }`}
+              title={btn.id}
+            >
+              <btn.icon size={24} />
+            </button>
+          ))}
+        </nav>
       </div>
     );
-  };
+  }
 
-  /* ------------------------------ 8) ROOT RENDER ------------------------------ */
-
-  if (view === "auth") return <AuthScreen />;
-  if (view === "forgot") return <ForgotScreen />;
-  return <Dashboard />;
+  // Fallback
+  return null;
 }
