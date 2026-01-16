@@ -98,7 +98,6 @@ const Button = ({
   const baseStyle =
     'h-14 px-6 rounded-2xl font-bold transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100';
 
-  // Tailwind NÃO compila classes dinâmicas; então aqui vai tudo via style quando necessário.
   const variantClass = {
     primary: 'text-white shadow-lg shadow-blue-200',
     secondary: 'bg-white border',
@@ -129,11 +128,32 @@ const Card = ({ children, className = '' }) => (
   <div className={`bg-white rounded-[28px] p-5 shadow-sm border border-gray-100 ${className}`}>{children}</div>
 );
 
+/**
+ * ✅ FIX: força cor do texto digitado, placeholder, caret e autofill do Chrome.
+ */
 const Input = ({ label, type = 'text', placeholder, icon: Icon, value, onChange, error }) => (
   <div className="mb-4 text-left">
     {label && (
       <label className="block text-[10px] font-bold text-gray-400 mb-2 ml-1 uppercase tracking-widest">{label}</label>
     )}
+
+    {/* Estilos locais para autofill (Chrome) */}
+    <style jsx>{`
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      textarea:-webkit-autofill,
+      textarea:-webkit-autofill:hover,
+      textarea:-webkit-autofill:focus,
+      select:-webkit-autofill,
+      select:-webkit-autofill:hover,
+      select:-webkit-autofill:focus {
+        -webkit-text-fill-color: #111827; /* text-gray-900 */
+        transition: background-color 5000s ease-in-out 0s;
+        box-shadow: 0 0 0px 1000px #ffffff inset; /* fundo branco */
+      }
+    `}</style>
+
     <div className="relative">
       {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />}
       <input
@@ -141,11 +161,16 @@ const Input = ({ label, type = 'text', placeholder, icon: Icon, value, onChange,
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full bg-white border-2 ${error ? 'border-red-500' : 'border-transparent'} rounded-2xl py-4 ${
-          Icon ? 'pl-12' : 'px-4'
-        } focus:border-blue-500 transition-all outline-none shadow-sm text-sm font-medium`}
+        className={[
+          'w-full bg-white border-2 rounded-2xl py-4 shadow-sm text-sm font-medium outline-none transition-all',
+          'text-gray-900 placeholder:text-gray-400 caret-blue-600',
+          Icon ? 'pl-12 pr-4' : 'px-4',
+          error ? 'border-red-500' : 'border-transparent',
+          'focus:border-blue-500',
+        ].join(' ')}
       />
     </div>
+
     {error && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{error}</p>}
   </div>
 );
@@ -155,10 +180,10 @@ const Onboarding = ({ onComplete }) => {
   const [step, setStep] = useState('welcome');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    role: '', // 'patient' or 'caregiver'
+    role: '',
     phone: '',
     name: '',
-    patientToWatch: '', // only caregiver
+    patientToWatch: '',
   });
 
   const nextStep = (target) => {
@@ -173,8 +198,10 @@ const Onboarding = ({ onComplete }) => {
     return (
       <div className="flex flex-col h-screen px-8 pb-12 pt-24">
         <div className="mb-auto">
-          <div className="w-20 h-20 rounded-[28px] flex items-center justify-center text-white mb-8 shadow-xl rotate-3"
-               style={{ backgroundColor: COLORS.primary }}>
+          <div
+            className="w-20 h-20 rounded-[28px] flex items-center justify-center text-white mb-8 shadow-xl rotate-3"
+            style={{ backgroundColor: COLORS.primary }}
+          >
             <Heart size={40} fill="currentColor" />
           </div>
           <h1 className="text-4xl font-black tracking-tight text-gray-900 leading-tight">
@@ -202,7 +229,7 @@ const Onboarding = ({ onComplete }) => {
           <ChevronLeft />
         </button>
 
-        <h2 className="text-3xl font-bold mb-2">Como você usará o app?</h2>
+        <h2 className="text-3xl font-bold mb-2 text-gray-900">Como você usará o app?</h2>
         <p className="text-gray-500 mb-8">Escolha o seu perfil principal para continuarmos.</p>
 
         <div className="space-y-4">
@@ -223,7 +250,7 @@ const Onboarding = ({ onComplete }) => {
               <User size={28} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-lg">Sou Paciente</h4>
+              <h4 className="font-bold text-lg text-gray-900">Sou Paciente</h4>
               <p className="text-xs text-gray-400">Quero gerenciar minha própria saúde.</p>
             </div>
             {formData.role === 'patient' && <CheckCircle2 className="ml-auto text-blue-600" />}
@@ -246,7 +273,7 @@ const Onboarding = ({ onComplete }) => {
               <Users size={28} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-lg">Rede de Apoio</h4>
+              <h4 className="font-bold text-lg text-gray-900">Rede de Apoio</h4>
               <p className="text-xs text-gray-400">Sou familiar ou cuidador de alguém.</p>
             </div>
             {formData.role === 'caregiver' && <CheckCircle2 className="ml-auto text-indigo-600" />}
@@ -271,7 +298,7 @@ const Onboarding = ({ onComplete }) => {
         >
           <ChevronLeft />
         </button>
-        <h2 className="text-3xl font-bold mb-2">Seu Telefone</h2>
+        <h2 className="text-3xl font-bold mb-2 text-gray-900">Seu Telefone</h2>
         <p className="text-gray-500 mb-8">Validaremos seu acesso de forma segura.</p>
         <Input
           label="Celular"
@@ -280,7 +307,12 @@ const Onboarding = ({ onComplete }) => {
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
         />
-        <Button fullWidth loading={loading} disabled={formData.phone.replace(/\D/g, '').length < 10} onClick={() => nextStep('code')}>
+        <Button
+          fullWidth
+          loading={loading}
+          disabled={formData.phone.replace(/\D/g, '').length < 10}
+          onClick={() => nextStep('code')}
+        >
           Enviar Código
         </Button>
       </div>
@@ -296,15 +328,14 @@ const Onboarding = ({ onComplete }) => {
         >
           <ChevronLeft />
         </button>
-        <h2 className="text-3xl font-bold mb-2">Validar Acesso</h2>
+        <h2 className="text-3xl font-bold mb-2 text-gray-900">Validar Acesso</h2>
         <p className="text-gray-500 mb-8 text-sm">Insira o código enviado por SMS para o número informado.</p>
 
-        {/* MVP visual (sem integração SMS real) */}
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="w-full h-16 bg-white rounded-2xl border-2 border-transparent flex items-center justify-center text-2xl font-bold shadow-sm"
+              className="w-full h-16 bg-white rounded-2xl border-2 border-transparent flex items-center justify-center text-2xl font-bold shadow-sm text-gray-900"
             >
               0
             </div>
@@ -320,7 +351,7 @@ const Onboarding = ({ onComplete }) => {
   if (step === 'profile')
     return (
       <div className="flex flex-col h-screen px-8 pt-16 overflow-y-auto pb-12">
-        <h2 className="text-3xl font-bold mb-2">Seus dados</h2>
+        <h2 className="text-3xl font-bold mb-2 text-gray-900">Seus dados</h2>
         <p className="text-gray-500 mb-8">
           Preencha seu perfil de {formData.role === 'patient' ? 'paciente' : 'apoio'}.
         </p>
@@ -348,9 +379,7 @@ const Onboarding = ({ onComplete }) => {
 
         {formData.role === 'caregiver' && (
           <div className="mt-4">
-            <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-widest ml-1 mb-4">
-              A quem você apoia?
-            </h3>
+            <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-widest ml-1 mb-4">A quem você apoia?</h3>
             <Input
               label="Nome do Paciente"
               placeholder="Ex: Maria Silveira"
@@ -380,7 +409,7 @@ const Onboarding = ({ onComplete }) => {
         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-[35px] flex items-center justify-center mb-8">
           <Check size={48} strokeWidth={3} />
         </div>
-        <h2 className="text-3xl font-black mb-4">Tudo pronto!</h2>
+        <h2 className="text-3xl font-black mb-4 text-gray-900">Tudo pronto!</h2>
         <p className="text-gray-500 text-lg mb-10">
           O VIVERCOM está pronto para <br />
           {formData.role === 'patient' ? 'cuidar de você' : `acompanhar ${formData.patientToWatch}`}.
@@ -424,14 +453,16 @@ const DashboardModule = ({ user }) => {
 
       {!isCaregiver && (
         <div className="mb-8">
-          <h3 className="text-xl font-bold mb-4">Como está a sua disposição hoje?</h3>
+          <h3 className="text-xl font-bold mb-4 text-gray-900">Como está a sua disposição hoje?</h3>
           <div className="flex justify-between gap-2 overflow-x-auto pb-2">
             {moodOptions.map((option) => (
               <button
                 key={option.id}
                 onClick={() => setMood(option.id)}
                 className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-[24px] transition-all duration-300 ${
-                  mood === option.id ? `${option.bg} border-2 border-blue-500 scale-105 shadow-md` : 'bg-white border-2 border-transparent shadow-sm'
+                  mood === option.id
+                    ? `${option.bg} border-2 border-blue-500 scale-105 shadow-md`
+                    : 'bg-white border-2 border-transparent shadow-sm'
                 }`}
                 type="button"
               >
@@ -457,8 +488,7 @@ const DashboardModule = ({ user }) => {
         </Card>
       )}
 
-      <Card className="text-white border-none mb-8 shadow-xl shadow-blue-100"
-            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #4338ca 100%)' }}>
+      <Card className="text-white border-none mb-8 shadow-xl shadow-blue-100" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #4338ca 100%)' }}>
         <div className="flex justify-between items-start mb-6">
           <div>
             <p className="opacity-80 text-sm font-bold uppercase tracking-wider mb-1">Aderência Hoje</p>
@@ -475,7 +505,7 @@ const DashboardModule = ({ user }) => {
 
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">Medicamentos</h3>
+          <h3 className="text-xl font-bold text-gray-900">Medicamentos</h3>
           <button className="font-bold text-sm" style={{ color: COLORS.primary }} type="button">
             Ver todos
           </button>
@@ -483,15 +513,8 @@ const DashboardModule = ({ user }) => {
 
         <div className="space-y-4">
           {MOCK_MEDS.map((med) => (
-            <div
-              key={med.id}
-              className="bg-white p-4 rounded-[28px] flex items-center gap-4 shadow-sm border border-gray-50"
-            >
-              <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                  med.taken ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                }`}
-              >
+            <div key={med.id} className="bg-white p-4 rounded-[28px] flex items-center gap-4 shadow-sm border border-gray-50">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${med.taken ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
                 <Clock size={24} />
               </div>
               <div className="flex-1">
@@ -519,7 +542,7 @@ const DashboardModule = ({ user }) => {
 const AgendaModule = () => (
   <div className="p-6 pb-24">
     <div className="flex justify-between items-center mb-8">
-      <h1 className="text-3xl font-bold">Agenda</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Agenda</h1>
       <button className="text-white p-3 rounded-2xl shadow-lg shadow-blue-200" style={{ backgroundColor: COLORS.primary }} type="button">
         <Plus size={24} />
       </button>
@@ -545,11 +568,11 @@ const AgendaModule = () => (
           <div className={`absolute left-0 top-0 h-full w-1.5 ${appt.type === 'Teleconsulta' ? 'bg-indigo-500' : 'bg-blue-500'}`} />
           <div className="flex justify-between mb-3">
             <div>
-              <h4 className="font-bold text-lg">{appt.doc}</h4>
+              <h4 className="font-bold text-lg text-gray-900">{appt.doc}</h4>
               <p className="text-blue-600 text-sm font-semibold">{appt.specialty}</p>
             </div>
             <div className="text-right">
-              <p className="font-bold">{appt.date}</p>
+              <p className="font-bold text-gray-900">{appt.date}</p>
               <p className="text-gray-400 text-xs">{appt.time}</p>
             </div>
           </div>
@@ -576,7 +599,7 @@ const AgendaModule = () => (
 const HistoryModule = () => (
   <div className="p-6 pb-24 bg-[#F2F2F7]">
     <div className="flex justify-between items-center mb-6">
-      <h1 className="text-3xl font-bold">Saúde</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Saúde</h1>
       <button className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100" type="button">
         <Filter size={20} className="text-gray-500" />
       </button>
@@ -633,7 +656,7 @@ const ProfileModule = ({ onLogout, user }) => (
       <div className="w-24 h-24 rounded-[35px] bg-blue-50 flex items-center justify-center text-blue-600 mb-4 shadow-inner border-4 border-white">
         <User size={48} />
       </div>
-      <h2 className="text-2xl font-bold">{user.name}</h2>
+      <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
       <p className="text-gray-500 font-medium">{user.role === 'patient' ? 'Perfil Paciente' : 'Rede de Apoio'}</p>
     </div>
 
@@ -647,7 +670,7 @@ const ProfileModule = ({ onLogout, user }) => (
           <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
             <Settings size={20} />
           </div>
-          <span className="font-bold flex-1 text-left">{item}</span>
+          <span className="font-bold flex-1 text-left text-gray-900">{item}</span>
           <ChevronRight className="text-gray-300" size={18} />
         </button>
       ))}
