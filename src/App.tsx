@@ -1,144 +1,100 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Bell,
-  Calendar,
-  Clock,
-  User,
-  Home,
-  ChevronRight,
-  Plus,
-  Settings,
-  LogOut,
-  Activity,
-  CheckCircle2,
-  MapPin,
-  Video,
-  Heart,
-  ChevronLeft,
-  Phone,
-  Camera,
-  Loader2,
-  Check,
-  Moon,
-  Scale,
-  Thermometer,
-  ArrowUpRight,
-  Filter,
-  Smile,
-  Meh,
-  Frown,
-  ZapOff,
-  Users,
-  Zap,
+  Bell, Calendar, Clock, User, Home, ChevronRight, Plus, Settings,
+  LogOut, Activity, CheckCircle2, MapPin, Heart, ChevronLeft, Phone,
+  Loader2, Check, Scale, Users, PlusCircle, Zap, ArrowUpRight, Smile,
+  Meh, Frown, Stethoscope, ClipboardList, Pill, Mail, Lock, TrendingUp,
+  History, Share2, X, AlertCircle, MessageSquare,
+  Thermometer, Droplets, ShieldCheck
 } from 'lucide-react';
 
-// --- Theme Constants ---
-const COLORS = {
-  primary: '#007AFF',
-  background: '#F2F2F7',
-  card: '#FFFFFF',
-  text: '#1C1C1E',
-  textSecondary: '#8E8E93',
-  success: '#34C759',
-  border: '#E5E5EA',
-};
+// -----------------------------
+//  GLOBAL + APP SHELL (fix iOS)
+// -----------------------------
+const GlobalStyles = () => (
+  <style
+    dangerouslySetInnerHTML={{
+      __html: `
+      :root { color-scheme: light; }
+      html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: #F2F2F7 !important;
+        color: #1e293b !important;
+        -webkit-font-smoothing: antialiased;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overscroll-behavior-y: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      * { box-sizing: border-box; }
+      .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+      .safe-area-top { padding-top: env(safe-area-inset-top); }
+      .animate-in { animation: fadeIn 0.3s ease-out; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      .ios-blur { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+      input::placeholder { color: #94a3b8; font-weight: 400; }
+      /* Evita zoom do iOS ao focar input (mantém 16px) */
+      input, select, textarea { font-size: 16px; }
+    `,
+    }}
+  />
+);
 
-// --- Mock Data ---
-const MOCK_MEDS = [
-  { id: 1, name: 'Atorvastatina', dose: '20mg', time: '08:00', taken: true },
-  { id: 2, name: 'Losartana', dose: '50mg', time: '12:00', taken: false },
-  { id: 3, name: 'Vitamina D', dose: '2000 UI', time: '20:00', taken: false },
-];
-
-const MOCK_APPOINTMENTS = [
-  { id: 1, doc: 'Dr. Roberto Silva', specialty: 'Cardiologista', date: '22 Jan', time: '14:30', type: 'Presencial', location: 'Clínica Vida, Sala 402' },
-  { id: 2, doc: 'Dra. Aline Santos', specialty: 'Nutricionista', date: '25 Jan', time: '10:00', type: 'Teleconsulta', location: 'Link via App' },
-];
-
-const MOCK_VITALS = [
-  { id: 'heart', label: 'Batimentos', value: '72', unit: 'bpm', icon: Zap, color: 'text-red-500', bg: 'bg-red-50' },
-  { id: 'sleep', label: 'Sono', value: '7.5', unit: 'hrs', icon: Moon, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-  { id: 'weight', label: 'Peso', value: '78.2', unit: 'kg', icon: Scale, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { id: 'temp', label: 'Temp.', value: '36.6', unit: '°C', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-50' },
-];
-
-const MOCK_HISTORY = [
-  { id: 1, title: 'Check-up Semestral', date: '10 Dez, 2024', status: 'Concluído', category: 'Consulta' },
-  { id: 2, title: 'Exame de Sangue', date: '05 Nov, 2024', status: 'Concluído', category: 'Exame' },
-];
-
-// ---------- UI Shell (fix iOS Safari viewport / keyboard / safe-area) ----------
 function AppShell({ children }) {
   return (
-    <>
-      {/* Correções globais para mobile web-app / iOS Safari */}
-      <style jsx global>{`
-        html, body {
-          height: 100%;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-          background: ${COLORS.background};
-          overscroll-behavior-y: none;
-          -webkit-overflow-scrolling: touch;
-        }
-        * { box-sizing: border-box; }
-        /* evita zoom do iOS ao focar inputs (quando font < 16px) */
-        input, select, textarea { font-size: 16px; }
-      `}</style>
-
-      {/* Container central “tipo app” com altura dinâmica */}
+    <div
+      className="mx-auto w-full max-w-md bg-[#F2F2F7] shadow-2xl overflow-hidden relative"
+      style={{
+        height: '100vh',
+        minHeight: '100vh',
+      }}
+    >
+      {/* altura real no mobile (resolve Safari) */}
       <div
-        className="mx-auto w-full max-w-md shadow-2xl bg-[#F2F2F7] font-sans select-none overflow-hidden"
+        className="w-full h-full safe-area-top safe-area-bottom"
         style={{
-          // fallback + novo viewport dinâmico
-          height: '100vh',
-          minHeight: '100vh',
+          height: '100dvh',
+          minHeight: '100dvh',
         }}
       >
-        {/* Usamos um wrapper com dvh (altura real) quando suportado */}
-        <div
-          className="w-full"
-          style={{
-            height: '100dvh', // resolve barra do Safari e teclado melhor
-            minHeight: '100dvh',
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
-    </>
+    </div>
   );
 }
 
-// --- Shared Components ---
+// -----------------------------
+//  BASE COMPONENTS
+// -----------------------------
+const Card = ({ children, className = '', onClick }) => (
+  <div
+    onClick={onClick}
+    className={`bg-white rounded-[28px] p-5 shadow-sm border border-slate-200 transition-all active:scale-[0.98] ${className}`}
+  >
+    {children}
+  </div>
+);
+
 const Button = ({ children, onClick, variant = 'primary', fullWidth = false, disabled = false, loading = false, className = '' }) => {
   const baseStyle =
-    'h-14 px-6 rounded-2xl font-bold transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100';
+    'h-14 px-6 rounded-2xl font-bold transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm';
 
-  const variantClass = {
-    primary: 'text-white shadow-lg shadow-blue-200',
-    secondary: 'bg-white border',
-    ghost: 'bg-transparent',
-  }[variant];
-
-  const variantStyle =
-    variant === 'primary'
-      ? { backgroundColor: COLORS.primary }
-      : variant === 'secondary'
-        ? { color: COLORS.primary, borderColor: COLORS.primary }
-        : { color: COLORS.textSecondary };
+  const variants = {
+    primary: 'bg-[#007AFF] text-white',
+    secondary: 'bg-white text-[#007AFF] border border-slate-200',
+    danger: 'bg-red-50 text-red-500 border border-red-100',
+    ghost: 'bg-slate-100 text-slate-600',
+  };
 
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`${baseStyle} ${variantClass} ${fullWidth ? 'w-full' : ''} ${className}`}
-      style={variantStyle}
+      className={`${baseStyle} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
       type="button"
     >
       {loading ? <Loader2 className="animate-spin" /> : children}
@@ -146,579 +102,852 @@ const Button = ({ children, onClick, variant = 'primary', fullWidth = false, dis
   );
 };
 
-const Card = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-[28px] p-5 shadow-sm border border-gray-100 ${className}`}>{children}</div>
-);
-
-/**
- * ✅ Input: texto sempre visível + placeholder ok + caret + autofill
- * ✅ font-size: 16px (evita zoom iOS)
- */
-const Input = ({ label, type = 'text', placeholder, icon: Icon, value, onChange, error }) => (
-  <div className="mb-4 text-left">
-    {label && (
-      <label className="block text-[10px] font-bold text-gray-400 mb-2 ml-1 uppercase tracking-widest">{label}</label>
-    )}
-
-    <style jsx>{`
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover,
-      input:-webkit-autofill:focus {
-        -webkit-text-fill-color: #111827;
-        transition: background-color 5000s ease-in-out 0s;
-        box-shadow: 0 0 0px 1000px #ffffff inset;
-      }
-    `}</style>
-
+const Input = ({ label, icon: Icon, type = 'text', placeholder, value, onChange }) => (
+  <div className="text-left w-full mb-4">
+    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">{label}</label>
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #0f172a;
+          transition: background-color 5000s ease-in-out 0s;
+          box-shadow: 0 0 0px 1000px #ffffff inset;
+        }
+      `,
+      }}
+    />
     <div className="relative">
-      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+        <Icon size={18} />
+      </div>
       <input
         type={type}
-        value={value}
-        onChange={onChange}
+        className="w-full bg-white border border-slate-200 rounded-2xl p-4 pl-12 font-bold outline-none focus:border-blue-500 transition-colors text-slate-900 caret-blue-600"
         placeholder={placeholder}
-        className={[
-          'w-full bg-white border-2 rounded-2xl py-4 shadow-sm font-medium outline-none transition-all',
-          'text-gray-900 placeholder:text-gray-400 caret-blue-600',
-          Icon ? 'pl-12 pr-4' : 'px-4',
-          error ? 'border-red-500' : 'border-transparent',
-          'focus:border-blue-500',
-        ].join(' ')}
-        style={{ fontSize: 16 }}
+        value={value ?? ''}
+        onChange={onChange}
       />
     </div>
-
-    {error && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{error}</p>}
   </div>
 );
 
-// ---------- Screen Wrapper ----------
-// Em vez de h-screen, usamos uma tela com scroll interno e padding correto.
-function Screen({ children, scroll = true, className = '' }) {
+// -----------------------------
+//  MODAL
+// -----------------------------
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
   return (
-    <div className={`w-full h-full ${className}`}>
-      <div
-        className={`${scroll ? 'h-full overflow-y-auto' : ''}`}
-        style={{
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {children}
-        {/* espaço para a barra inferior e safe area */}
-        <div style={{ height: 120 }} />
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 animate-in">
+      <div className="bg-[#F2F2F7] w-full max-w-md rounded-t-[32px] sm:rounded-[32px] max-h-[90dvh] overflow-y-auto pb-10">
+        <div className="sticky top-0 bg-[#F2F2F7]/80 ios-blur p-6 flex justify-between items-center z-10">
+          <h3 className="text-xl font-black text-slate-900">{title}</h3>
+          <button onClick={onClose} className="bg-white p-2 rounded-full shadow-sm" type="button">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="px-6">{children}</div>
       </div>
     </div>
   );
-}
+};
 
-// --- Onboarding Flow ---
-const Onboarding = ({ onComplete }) => {
-  const [step, setStep] = useState('welcome');
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ role: '', phone: '', name: '', patientToWatch: '' });
+// -----------------------------
+//  ONBOARDING
+// -----------------------------
+const OnboardingFlow = ({ onFinish }) => {
+  const [step, setStep] = useState('welcome'); // welcome, profile_type, form, optional, first_experience
+  const [profileType, setProfileType] = useState(null); // patient, caregiver, professional
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+    password: '',
+  });
 
-  const nextStep = (target) => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep(target);
-    }, 400);
-  };
+  const nextStep = (next) => setStep(next);
 
-  if (step === 'welcome')
+  if (step === 'welcome') {
     return (
-      <Screen>
-        <div className="flex flex-col px-8 pb-10 pt-16 min-h-full">
-          <div className="mb-auto">
-            <div className="w-20 h-20 rounded-[28px] flex items-center justify-center text-white mb-8 shadow-xl rotate-3" style={{ backgroundColor: COLORS.primary }}>
-              <Heart size={40} fill="currentColor" />
+      <div className="h-full w-full overflow-y-auto">
+        <div className="flex flex-col p-8 animate-in text-center justify-center min-h-full">
+          <div className="mb-12 flex justify-center">
+            <div className="w-24 h-24 bg-blue-600 rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-200">
+              <Heart size={48} className="text-white" />
             </div>
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 leading-tight">
-              Bem-vindo ao <br />
-              <span style={{ color: COLORS.primary }}>VIVERCOM</span>
-            </h1>
-            <p className="text-xl text-gray-500 mt-4 leading-relaxed font-medium">
-              Tudo o que você precisa para cuidar de quem você ama em um só lugar.
-            </p>
           </div>
-          <Button fullWidth onClick={() => setStep('role')}>
-            Começar
-          </Button>
-        </div>
-      </Screen>
-    );
-
-  if (step === 'role')
-    return (
-      <Screen>
-        <div className="flex flex-col px-8 pt-10 min-h-full">
-          <button onClick={() => setStep('welcome')} className="mb-6 w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm" type="button">
-            <ChevronLeft />
-          </button>
-
-          <h2 className="text-3xl font-bold mb-2 text-gray-900">Como você usará o app?</h2>
-          <p className="text-gray-500 mb-8">Escolha o seu perfil principal para continuarmos.</p>
-
+          <h1 className="text-4xl font-black text-slate-900 mb-4 leading-tight">Seu app de autogestão de saúde</h1>
+          <p className="text-slate-500 text-lg mb-12">
+            Organize seus tratamentos, acompanhe sua saúde e compartilhe informações com quem cuida de você.
+          </p>
           <div className="space-y-4">
-            <button
-              onClick={() => setFormData({ ...formData, role: 'patient' })}
-              className={`w-full p-6 rounded-[28px] border-2 transition-all flex items-center gap-4 ${
-                formData.role === 'patient' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-white bg-white shadow-sm'
-              }`}
-              type="button"
-            >
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${formData.role === 'patient' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                <User size={28} />
-              </div>
-              <div className="text-left">
-                <h4 className="font-bold text-lg text-gray-900">Sou Paciente</h4>
-                <p className="text-xs text-gray-400">Quero gerenciar minha própria saúde.</p>
-              </div>
-              {formData.role === 'patient' && <CheckCircle2 className="ml-auto text-blue-600" />}
-            </button>
-
-            <button
-              onClick={() => setFormData({ ...formData, role: 'caregiver' })}
-              className={`w-full p-6 rounded-[28px] border-2 transition-all flex items-center gap-4 ${
-                formData.role === 'caregiver' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-white bg-white shadow-sm'
-              }`}
-              type="button"
-            >
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${formData.role === 'caregiver' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
-                <Users size={28} />
-              </div>
-              <div className="text-left">
-                <h4 className="font-bold text-lg text-gray-900">Rede de Apoio</h4>
-                <p className="text-xs text-gray-400">Sou familiar ou cuidador de alguém.</p>
-              </div>
-              {formData.role === 'caregiver' && <CheckCircle2 className="ml-auto text-indigo-600" />}
-            </button>
-          </div>
-
-          <div className="mt-10">
-            <Button fullWidth disabled={!formData.role} onClick={() => nextStep('phone')}>
-              Continuar
+            <Button fullWidth onClick={() => nextStep('profile_type')}>Criar conta</Button>
+            <Button fullWidth variant="secondary" onClick={() => onFinish({ name: 'Carlos Silva', role: 'patient' })}>
+              Já tenho conta
             </Button>
           </div>
+          <div style={{ height: 32 }} />
         </div>
-      </Screen>
+      </div>
     );
+  }
 
-  if (step === 'phone')
+  if (step === 'profile_type') {
     return (
-      <Screen>
-        <div className="flex flex-col px-8 pt-10 min-h-full">
-          <button onClick={() => setStep('role')} className="mb-6 w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm" type="button">
-            <ChevronLeft />
+      <div className="h-full w-full overflow-y-auto">
+        <div className="p-8 animate-in min-h-full">
+          <button onClick={() => setStep('welcome')} className="mb-8 p-2 bg-white rounded-full shadow-sm" type="button">
+            <ChevronLeft size={24} />
           </button>
-          <h2 className="text-3xl font-bold mb-2 text-gray-900">Seu Telefone</h2>
-          <p className="text-gray-500 mb-8">Validaremos seu acesso de forma segura.</p>
-          <Input label="Celular" placeholder="(00) 00000-0000" icon={Phone} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-          <Button fullWidth loading={loading} disabled={formData.phone.replace(/\D/g, '').length < 10} onClick={() => nextStep('code')}>
-            Enviar Código
-          </Button>
-        </div>
-      </Screen>
-    );
 
-  if (step === 'code')
-    return (
-      <Screen>
-        <div className="flex flex-col px-8 pt-10 min-h-full">
-          <button onClick={() => setStep('phone')} className="mb-6 w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm" type="button">
-            <ChevronLeft />
-          </button>
-          <h2 className="text-3xl font-bold mb-2 text-gray-900">Validar Acesso</h2>
-          <p className="text-gray-500 mb-8 text-sm">Insira o código enviado por SMS para o número informado.</p>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Como você vai usar o app?</h2>
+          <p className="text-slate-500 mb-8">Sua escolha define como o app irá funcionar para você.</p>
 
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="w-full h-16 bg-white rounded-2xl border-2 border-transparent flex items-center justify-center text-2xl font-bold shadow-sm text-gray-900">
-                0
-              </div>
+          <div className="space-y-4">
+            {[
+              { id: 'patient', title: 'Sou paciente', desc: 'Para gerenciar minha própria saúde.', icon: User },
+              { id: 'caregiver', title: 'Sou acompanhante', desc: 'Rede de apoio para familiares.', icon: Users },
+              { id: 'professional', title: 'Sou profissional', desc: 'Médico, nutricionista ou cuidador.', icon: Stethoscope },
+            ].map((type) => (
+              <button
+                key={type.id}
+                onClick={() => { setProfileType(type.id); nextStep('form'); }}
+                className="w-full bg-white p-6 rounded-[28px] border-2 border-transparent hover:border-blue-600 transition-all flex items-center gap-4 text-left shadow-sm active:scale-95"
+                type="button"
+              >
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                  <type.icon size={24} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-900">{type.title}</h4>
+                  <p className="text-xs text-slate-400">{type.desc}</p>
+                </div>
+                <ChevronRight className="text-slate-200" />
+              </button>
             ))}
           </div>
 
-          <Button fullWidth loading={loading} onClick={() => nextStep('profile')}>
-            Verificar e Continuar
-          </Button>
+          <div style={{ height: 32 }} />
         </div>
-      </Screen>
+      </div>
     );
+  }
 
-  if (step === 'profile')
+  if (step === 'form') {
     return (
-      <Screen>
-        <div className="flex flex-col px-8 pt-10 min-h-full">
-          <h2 className="text-3xl font-bold mb-2 text-gray-900">Seus dados</h2>
-          <p className="text-gray-500 mb-8">Preencha seu perfil de {formData.role === 'patient' ? 'paciente' : 'apoio'}.</p>
+      <div className="h-full w-full overflow-y-auto">
+        <div className="p-8 animate-in min-h-full pb-10">
+          <button onClick={() => setStep('profile_type')} className="mb-8 p-2 bg-white rounded-full shadow-sm" type="button">
+            <ChevronLeft size={24} />
+          </button>
 
-          <div className="flex justify-center mb-8">
-            <div className="relative w-24 h-24 rounded-[32px] bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300">
-              <User size={40} />
-              <button className="absolute -bottom-2 -right-2 text-white p-2 rounded-xl shadow-lg border-4" style={{ backgroundColor: COLORS.primary, borderColor: COLORS.background }} type="button">
-                <Camera size={16} />
-              </button>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Quase lá!</h2>
+          <p className="text-slate-500 mb-8">Precisamos de alguns dados básicos para começar.</p>
+
+          <div className="space-y-2">
+            <Input
+              label="Nome Completo"
+              icon={User}
+              placeholder="Seu nome aqui"
+              value={formData.name}
+              onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
+            />
+            {profileType === 'professional' && (
+              <Input label="Profissão / Registro" icon={Stethoscope} placeholder="Ex: Médico CRM 12345" />
+            )}
+            <Input
+              label="Data de Nascimento"
+              icon={Calendar}
+              type="date"
+              value={formData.birthDate}
+              onChange={(e) => setFormData((s) => ({ ...s, birthDate: e.target.value }))}
+            />
+            <Input
+              label="E-mail"
+              icon={Mail}
+              type="email"
+              placeholder="seu@email.com"
+              value={formData.email}
+              onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
+            />
+            <Input
+              label="Celular (WhatsApp)"
+              icon={Phone}
+              type="tel"
+              placeholder="(00) 00000-0000"
+              value={formData.phone}
+              onChange={(e) => setFormData((s) => ({ ...s, phone: e.target.value }))}
+            />
+            <Input
+              label="Senha"
+              icon={Lock}
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
+            />
+
+            <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl mb-8">
+              <input type="checkbox" className="mt-1 w-5 h-5 rounded-lg" defaultChecked />
+              <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                Aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b> do app VIVERCOM.
+              </p>
             </div>
-          </div>
 
-          <Input label="Seu Nome Completo" placeholder="Ex: João da Silva" icon={User} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-
-          {formData.role === 'caregiver' && (
-            <div className="mt-4">
-              <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-widest ml-1 mb-4">A quem você apoia?</h3>
-              <Input
-                label="Nome do Paciente"
-                placeholder="Ex: Maria Silveira"
-                icon={Heart}
-                value={formData.patientToWatch}
-                onChange={(e) => setFormData({ ...formData, patientToWatch: e.target.value })}
-              />
-            </div>
-          )}
-
-          <div className="mt-6">
             <Button
               fullWidth
-              loading={loading}
-              disabled={!formData.name || (formData.role === 'caregiver' && !formData.patientToWatch)}
-              onClick={() => nextStep('success')}
+              onClick={() => profileType === 'patient' ? nextStep('optional') : onFinish({ name: formData.name || 'Novo Usuário', role: profileType })}
+              disabled={!formData.name}
             >
-              Finalizar Cadastro
+              Criar minha conta
             </Button>
           </div>
-        </div>
-      </Screen>
-    );
 
-  if (step === 'success')
-    return (
-      <Screen>
-        <div className="flex flex-col px-8 items-center justify-center text-center min-h-full">
-          <div className="w-24 h-24 bg-green-100 text-green-600 rounded-[35px] flex items-center justify-center mb-8">
-            <Check size={48} strokeWidth={3} />
-          </div>
-          <h2 className="text-3xl font-black mb-4 text-gray-900">Tudo pronto!</h2>
-          <p className="text-gray-500 text-lg mb-10">
-            O VIVERCOM está pronto para <br />
-            {formData.role === 'patient' ? 'cuidar de você' : `acompanhar ${formData.patientToWatch}`}.
-          </p>
-          <Button fullWidth onClick={() => onComplete(formData)}>
-            Ir para o Início
-          </Button>
+          <div style={{ height: 32 }} />
         </div>
-      </Screen>
+      </div>
     );
+  }
+
+  if (step === 'optional') {
+    return (
+      <div className="h-full w-full overflow-y-auto">
+        <div className="p-8 animate-in text-center flex flex-col justify-center min-h-full">
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Personalize sua experiência</h2>
+          <p className="text-slate-500 mb-8">Isso nos ajuda a preparar o app para você.</p>
+
+          <Card className="mb-8 text-left space-y-6">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                Você possui condições crônicas?
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {['Diabetes', 'Hipertensão', 'Obesidade', 'Asma'].map((c) => (
+                  <button key={c} className="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold text-slate-600" type="button">
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-700">Faz uso de remédios contínuos?</span>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 bg-slate-100 rounded-xl text-xs font-black" type="button">NÃO</button>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black" type="button">SIM</button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="space-y-4">
+            <Button fullWidth onClick={() => nextStep('first_experience')}>Continuar</Button>
+            <button onClick={() => nextStep('first_experience')} className="text-slate-400 font-bold text-sm" type="button">
+              Pular por enquanto
+            </button>
+          </div>
+
+          <div style={{ height: 32 }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'first_experience') {
+    return (
+      <div className="h-full w-full overflow-y-auto">
+        <div className="p-8 animate-in flex flex-col min-h-full">
+          <div className="flex-1 flex flex-col justify-center">
+            <h2 className="text-3xl font-black text-slate-900 mb-8">Tudo pronto! 🚀</h2>
+            <div className="space-y-4">
+              {[
+                { icon: Pill, title: 'Cadastre seus medicamentos', desc: 'Nunca mais esqueça uma dose.' },
+                { icon: Bell, title: 'Ative lembretes e alertas', desc: 'Notificações direto no seu celular.' },
+                { icon: Users, title: 'Convide sua rede de apoio', desc: 'Compartilhe sua jornada com quem ama.' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4 p-5 bg-white rounded-3xl border border-slate-100">
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                    <item.icon size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">{item.title}</h4>
+                    <p className="text-xs text-slate-400">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button fullWidth onClick={() => onFinish({ name: formData.name || 'Novo Usuário', role: 'patient' })} className="mt-8">
+            Começar agora
+          </Button>
+
+          <div style={{ height: 32 }} />
+        </div>
+      </div>
+    );
+  }
 
   return null;
 };
 
-// --- App Modules ---
-const DashboardModule = ({ user }) => {
-  const [mood, setMood] = useState(null);
-  const isCaregiver = user.role === 'caregiver';
+// -----------------------------
+//  TABS
+// -----------------------------
+const TabHome = ({ user }) => {
+  const [feeling, setFeeling] = useState(null);
+  const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
 
-  const moodOptions = useMemo(
-    () => [
-      { id: 'great', emoji: '🤩', label: 'Excelente', icon: Smile, bg: 'bg-orange-50' },
-      { id: 'good', emoji: '😊', label: 'Bom', icon: Smile, bg: 'bg-green-50' },
-      { id: 'normal', emoji: '😐', label: 'Normal', icon: Meh, bg: 'bg-blue-50' },
-      { id: 'low', emoji: '😔', label: 'Baixo', icon: Frown, bg: 'bg-purple-50' },
-      { id: 'tired', emoji: '😴', label: 'Cansado', icon: ZapOff, bg: 'bg-gray-50' },
-    ],
-    []
-  );
+  const simulateNotification = () => {
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 8000);
+  };
 
   return (
-    <Screen>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-gray-500 font-medium">Bom dia, {user.name.split(' ')[0]}</p>
-            <h1 className="text-2xl font-extrabold text-gray-900">{isCaregiver ? `Cuidando de ${user.patientToWatch}` : 'Sua Saúde'}</h1>
-          </div>
-          <div className="relative bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-            <Bell size={24} className="text-gray-700" />
-            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
-          </div>
-        </div>
-
-        {!isCaregiver && (
-          <div className="mb-8">
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Como está a sua disposição hoje?</h3>
-            <div className="flex justify-between gap-2 overflow-x-auto pb-2">
-              {moodOptions.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => setMood(option.id)}
-                  className={`flex-1 min-w-[70px] flex flex-col items-center gap-2 p-3 rounded-[24px] transition-all duration-300 ${
-                    mood === option.id ? `${option.bg} border-2 border-blue-500 scale-105 shadow-md` : 'bg-white border-2 border-transparent shadow-sm'
-                  }`}
-                  type="button"
-                >
-                  <span className="text-2xl">{option.emoji}</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-tight ${mood === option.id ? 'text-blue-600' : 'text-gray-400'}`}>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {isCaregiver && (
-          <Card className="mb-8 bg-indigo-50 border-indigo-100">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-2xl">😊</div>
-              <div>
-                <h4 className="font-bold text-indigo-900">{user.patientToWatch} está se sentindo bem</h4>
-                <p className="text-xs text-indigo-600 font-medium">Última atualização: Hoje, 08:30</p>
+    <div className="p-6 animate-in">
+      {showNotification && (
+        <div className="fixed top-4 left-4 right-4 z-[200] max-w-md mx-auto animate-in">
+          <div className="bg-white/95 ios-blur p-4 rounded-[24px] shadow-2xl border border-slate-200 flex flex-col gap-3">
+            <div className="flex gap-3">
+              <div className="bg-blue-600 p-2 rounded-xl text-white"><Pill size={20} /></div>
+              <div className="flex-1 text-left">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Agora • VIVERCOM</p>
+                <h4 className="font-bold text-slate-900">Hora do seu medicamento!</h4>
+                <p className="text-sm text-slate-600">Losartana 50mg - Dose da tarde.</p>
               </div>
             </div>
-          </Card>
-        )}
-
-        <Card className="text-white border-none mb-8 shadow-xl shadow-blue-100" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #4338ca 100%)' }}>
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <p className="opacity-80 text-sm font-bold uppercase tracking-wider mb-1">Aderência Hoje</p>
-              <h3 className="text-4xl font-black">92%</h3>
-            </div>
-            <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
-              <Activity size={24} />
+            <div className="flex gap-2">
+              <button className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm" onClick={() => setShowNotification(false)} type="button">
+                Marcar como tomado
+              </button>
+              <button className="px-4 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm" onClick={() => setShowNotification(false)} type="button">
+                Adiar
+              </button>
             </div>
           </div>
-          <div className="w-full bg-white/20 h-2.5 rounded-full overflow-hidden">
-            <div className="bg-white h-full rounded-full" style={{ width: '92%' }} />
-          </div>
-        </Card>
+        </div>
+      )}
 
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-900">Medicamentos</h3>
-            <button className="font-bold text-sm" style={{ color: COLORS.primary }} type="button">
-              Ver todos
+      <header className="flex items-center justify-between mb-8 text-left">
+        <div>
+          <p className="text-blue-600 font-bold text-[10px] uppercase tracking-widest">Seu app de autogestão de saúde</p>
+          <h1 className="text-2xl font-black text-slate-900">Olá, {user?.name?.split(' ')[0]}!</h1>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={simulateNotification} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100" type="button">
+            <Zap size={20} className="text-yellow-500" />
+          </button>
+          <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 relative">
+            <Bell size={24} className="text-slate-600" />
+            <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          </div>
+        </div>
+      </header>
+
+      <Card className="mb-6 border-none shadow-md">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 text-left">Sentimento Hoje</p>
+        <div className="flex justify-around items-center">
+          {[
+            { id: 'sad', icon: Frown, label: 'Mal', color: 'text-red-500' },
+            { id: 'neutral', icon: Meh, label: 'Bem', color: 'text-yellow-500' },
+            { id: 'happy', icon: Smile, label: 'Ótimo', color: 'text-green-500' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setFeeling(item.id)}
+              className={`flex flex-col items-center gap-2 p-4 rounded-[22px] transition-all ${feeling === item.id ? 'bg-slate-50 scale-105' : 'opacity-40'}`}
+              type="button"
+            >
+              <item.icon size={32} className={feeling === item.id ? item.color : 'text-slate-400'} />
+              <span className="text-[10px] font-bold">{item.label}</span>
             </button>
-          </div>
+          ))}
+        </div>
+      </Card>
 
-          <div className="space-y-4">
-            {MOCK_MEDS.map((med) => (
-              <div key={med.id} className="bg-white p-4 rounded-[28px] flex items-center gap-4 shadow-sm border border-gray-50">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${med.taken ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                  <Clock size={24} />
+      <div className="mb-8">
+        <Button fullWidth onClick={() => setIsAddMedModalOpen(true)} className="h-16 shadow-lg shadow-blue-200">
+          <PlusCircle size={24} /> Adicionar Medicamento
+        </Button>
+      </div>
+
+      <section className="text-left mb-8">
+        <h3 className="font-black text-slate-900 text-lg mb-4">Rotina do Dia</h3>
+        <div className="space-y-3">
+          {[
+            { name: 'Losartana', dose: '50mg', time: '12:00', icon: Pill, status: 'pendente' },
+            { name: 'Dr. Roberto Silva', dose: 'Cardiologista', time: '14:30', icon: Stethoscope, status: 'agendado' },
+          ].map((item, i) => (
+            <div key={i} className="bg-white p-4 rounded-[22px] flex items-center gap-4 shadow-sm border border-slate-100">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.status === 'pendente' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
+                <item.icon size={20} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800 text-sm">{item.name}</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                  {item.dose} • {item.time}
+                </p>
+              </div>
+              <button className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 active:bg-blue-600 active:text-white transition-colors" type="button">
+                <Check size={16} strokeWidth={3} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="text-left mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-black text-slate-900 text-lg">Próximas Consultas</h3>
+          <button className="text-blue-600 text-xs font-bold" type="button">Ver Calendário</button>
+        </div>
+        <div className="space-y-3">
+          {[
+            { doctor: 'Dra. Aline Santos', specialty: 'Nutricionista', date: '25 Jan', time: '10:00', type: 'Presencial', color: 'bg-indigo-50 text-indigo-600' },
+            { doctor: 'Dr. Marcos Oliveira', specialty: 'Dermatologista', date: '02 Fev', time: '16:45', type: 'Teleconsulta', color: 'bg-emerald-50 text-emerald-600' },
+          ].map((appt, i) => (
+            <Card key={i} className="p-4">
+              <div className="flex gap-4">
+                <div className={`${appt.color} w-14 h-14 rounded-2xl flex flex-col items-center justify-center`}>
+                  <span className="text-[8px] font-black uppercase">{appt.date.split(' ')[1]}</span>
+                  <span className="text-lg font-black">{appt.date.split(' ')[0]}</span>
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-bold text-gray-800">{med.name}</h4>
-                  <p className="text-xs text-gray-500">
-                    {med.dose} • {med.time}
+                  <h4 className="font-bold text-slate-900 text-sm">{appt.doctor}</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
+                    {appt.specialty} • {appt.time}
                   </p>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] font-black text-slate-400 uppercase">
+                    {appt.type === 'Presencial' ? <MapPin size={10} /> : <Activity size={10} />}
+                    {appt.type}
+                  </div>
                 </div>
-                <button className={`p-2 rounded-xl border-2 ${med.taken ? 'bg-green-500 border-green-500 text-white' : 'border-gray-100 text-gray-300'}`} type="button">
-                  <Check size={20} strokeWidth={3} />
-                </button>
+                <div className="flex items-center">
+                  <ChevronRight size={18} className="text-slate-200" />
+                </div>
               </div>
-            ))}
-          </div>
+            </Card>
+          ))}
         </div>
-      </div>
-    </Screen>
+      </section>
+
+      <Modal isOpen={isAddMedModalOpen} onClose={() => setIsAddMedModalOpen(false)} title="Novo Tratamento">
+        <div className="space-y-4 text-left">
+          <Input label="Nome do Medicamento" icon={Pill} placeholder="Ex: Atorvastatina" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Dosagem" icon={Activity} placeholder="10mg" />
+            <div className="text-left">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">Frequência</label>
+              <select className="w-full bg-white border border-slate-200 rounded-2xl p-4 font-bold outline-none h-[58px]">
+                <option>Diário</option>
+                <option>12 em 12h</option>
+                <option>8 em 8h</option>
+              </select>
+            </div>
+          </div>
+          <Input label="Próximo Horário" icon={Clock} type="time" />
+          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <MessageSquare className="text-blue-600" size={20} />
+            <p className="text-xs text-blue-800 font-medium">
+              Alertas automáticos via <b>Push</b> e <b>WhatsApp</b> serão ativados.
+            </p>
+          </div>
+          <Button fullWidth className="mt-4" onClick={() => setIsAddMedModalOpen(false)}>Salvar Medicamento</Button>
+        </div>
+      </Modal>
+    </div>
   );
 };
 
-const AgendaModule = () => (
-  <Screen>
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Agenda</h1>
-        <button className="text-white p-3 rounded-2xl shadow-lg shadow-blue-200" style={{ backgroundColor: COLORS.primary }} type="button">
-          <Plus size={24} />
-        </button>
-      </div>
+const TabAgenda = () => {
+  const [selectedDay, setSelectedDay] = useState(16);
+  const days = [14, 15, 16, 17, 18, 19, 20];
 
-      <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].map((dia, i) => (
-          <div key={dia} className={`flex-shrink-0 w-14 py-4 rounded-[20px] flex flex-col items-center gap-1 ${i === 2 ? 'bg-blue-600 text-white' : 'bg-white text-gray-400'}`}>
-            <span className="text-[10px] font-bold uppercase">{dia}</span>
-            <span className="text-lg font-bold">{16 + i}</span>
-          </div>
-        ))}
-      </div>
+  return (
+    <div className="p-6 text-left animate-in">
+      <h1 className="text-2xl font-black text-slate-900 mb-2">Agenda</h1>
+      <p className="text-sm text-slate-500 mb-6">Sua programação completa de saúde.</p>
 
-      <div className="space-y-4">
-        {MOCK_APPOINTMENTS.map((appt) => (
-          <Card key={appt.id} className="relative overflow-hidden">
-            <div className={`absolute left-0 top-0 h-full w-1.5 ${appt.type === 'Teleconsulta' ? 'bg-indigo-500' : 'bg-blue-500'}`} />
-            <div className="flex justify-between mb-3">
-              <div>
-                <h4 className="font-bold text-lg text-gray-900">{appt.doc}</h4>
-                <p className="text-blue-600 text-sm font-semibold">{appt.specialty}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-gray-900">{appt.date}</p>
-                <p className="text-gray-400 text-xs">{appt.time}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl text-xs text-gray-600 mb-4">
-              {appt.type === 'Teleconsulta' ? <Video size={14} /> : <MapPin size={14} />}
-              <span>{appt.location}</span>
-            </div>
-            <div className="flex gap-2">
-              <Button fullWidth variant="secondary" className="h-10 text-sm">
-                Remarcar
-              </Button>
-              <Button fullWidth className="h-10 text-sm">
-                Confirmar
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  </Screen>
-);
-
-const HistoryModule = () => (
-  <Screen>
-    <div className="p-6 bg-[#F2F2F7]">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Saúde</h1>
-        <button className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100" type="button">
-          <Filter size={20} className="text-gray-500" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {MOCK_VITALS.map((vital) => {
-          const Icon = vital.icon;
-          return (
-            <Card key={vital.id} className="p-4 flex flex-col justify-between h-32 relative overflow-hidden group">
-              <div className="flex justify-between items-start">
-                <div className={`p-2 rounded-xl ${vital.bg} ${vital.color}`}>
-                  <Icon size={20} />
-                </div>
-                <ArrowUpRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-              </div>
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-gray-900">{vital.value}</span>
-                  <span className="text-xs font-bold text-gray-400 uppercase">{vital.unit}</span>
-                </div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{vital.label}</p>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="space-y-4 relative before:content-[''] before:absolute before:left-6 before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-200">
-        {MOCK_HISTORY.map((item) => (
-          <div key={item.id} className="relative pl-14">
-            <div className="absolute left-3 top-2 w-6 h-6 rounded-full border-4 border-[#F2F2F7] z-10 bg-blue-500" />
-            <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md mb-1 inline-block">
-                    {item.category}
-                  </span>
-                  <h4 className="font-bold text-gray-800 text-base">{item.title}</h4>
-                  <p className="text-xs text-gray-400 font-medium">{item.date}</p>
-                </div>
-                <ChevronRight size={18} className="text-gray-300 mt-2" />
-              </div>
-            </Card>
-          </div>
-        ))}
-      </div>
-    </div>
-  </Screen>
-);
-
-const ProfileModule = ({ onLogout, user }) => (
-  <Screen>
-    <div className="p-6">
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-24 h-24 rounded-[35px] bg-blue-50 flex items-center justify-center text-blue-600 mb-4 shadow-inner border-4 border-white">
-          <User size={48} />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
-        <p className="text-gray-500 font-medium">{user.role === 'patient' ? 'Perfil Paciente' : 'Rede de Apoio'}</p>
-      </div>
-
-      <div className="space-y-3">
-        {['Dados Pessoais', 'Notificações', 'Segurança', 'Rede de Apoio'].map((item, idx) => (
-          <button key={idx} className="w-full bg-white p-5 rounded-[24px] flex items-center gap-4 shadow-sm active:scale-[0.98] transition-all" type="button">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
-              <Settings size={20} />
-            </div>
-            <span className="font-bold flex-1 text-left text-gray-900">{item}</span>
-            <ChevronRight className="text-gray-300" size={18} />
+      <div className="flex justify-between mb-8 overflow-x-auto pb-2">
+        {days.map((day) => (
+          <button
+            key={day}
+            onClick={() => setSelectedDay(day)}
+            className={`flex flex-col items-center gap-1 min-w-[44px] py-3 rounded-2xl transition-all ${
+              selectedDay === day ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-100'
+            }`}
+            type="button"
+          >
+            <span className="text-[8px] font-black uppercase tracking-tighter opacity-70">Jan</span>
+            <span className="text-sm font-black">{day}</span>
           </button>
         ))}
-
-        <button onClick={onLogout} className="w-full bg-red-50 text-red-600 p-5 rounded-[24px] flex items-center gap-4 mt-8 active:scale-[0.98] transition-all font-bold" type="button">
-          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-            <LogOut size={20} />
-          </div>
-          <span>Sair do Aplicativo</span>
-        </button>
       </div>
-    </div>
-  </Screen>
-);
 
-// --- Main App Controller ---
+      <div className="space-y-6">
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={16} className="text-blue-600" />
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Cronograma de hoje</h3>
+          </div>
+
+          <div className="space-y-4 border-l-2 border-slate-100 ml-2 pl-6 relative">
+            {[
+              { time: '08:00', title: 'Medicamento', desc: 'Losartana 50mg', icon: Pill, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { time: '10:00', title: 'Consulta', desc: 'Dra. Aline (Nutri)', icon: User, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              { time: '12:30', title: 'Medicamento', desc: 'Vitamina D', icon: Pill, color: 'text-orange-600', bg: 'bg-orange-50' },
+              { time: '16:45', title: 'Exame', desc: 'Coleta de Sangue', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' },
+            ].map((item, i) => (
+              <div key={i} className="relative">
+                <div className="absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full bg-slate-200 border-2 border-white"></div>
+                <div className="flex gap-4">
+                  <span className="text-[10px] font-black text-slate-400 w-10 pt-1">{item.time}</span>
+                  <div className={`flex-1 ${item.bg} p-4 rounded-2xl border border-slate-50`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <item.icon size={14} className={item.color} />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${item.color}`}>{item.title}</span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">{item.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <Button fullWidth variant="secondary" className="mt-8">
+        <Plus size={20} /> Adicionar Compromisso
+      </Button>
+    </div>
+  );
+};
+
+const TabCompartilhamento = () => {
+  const [inviteMode, setInviteMode] = useState(false);
+
+  const shareViaWhatsApp = () => {
+    const text = encodeURIComponent(
+      'Olá! Estou te convidando para fazer parte da minha rede de apoio no VIVERCOM. Toque no link para aceitar: https://vivercom.app/invite/token123'
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  return (
+    <div className="p-6 text-left animate-in">
+      <h1 className="text-2xl font-black text-slate-900 mb-2">Compartilhamento</h1>
+      <p className="text-sm text-slate-500 mb-8">Gerencie quem pode acompanhar sua saúde.</p>
+
+      {!inviteMode ? (
+        <div className="space-y-6">
+          <Button fullWidth onClick={() => setInviteMode(true)} variant="secondary">
+            <Share2 size={20} /> Convidar nova pessoa
+          </Button>
+
+          <section>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Rede de Apoio (2)</h3>
+            <div className="space-y-3">
+              {[
+                { name: 'Maria Silva', role: 'Esposa', status: 'Aceito' },
+                { name: 'João Carlos', role: 'Filho', status: 'Pendente' },
+              ].map((p, i) => (
+                <div key={i} className="bg-white p-4 rounded-[22px] flex items-center gap-4 border border-slate-100">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold">{p.name[0]}</div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-slate-800 text-sm">{p.name}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">{p.role}</p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${
+                      p.status === 'Aceito' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                    }`}
+                  >
+                    {p.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Médicos & Profissionais (1)</h3>
+            <div className="bg-white p-4 rounded-[22px] flex items-center gap-4 border border-slate-100">
+              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">R</div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800 text-sm">Dr. Roberto Silva</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Cardiologista</p>
+              </div>
+              <button className="text-slate-300" type="button"><Settings size={18} /></button>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="animate-in">
+          <button onClick={() => setInviteMode(false)} className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-6" type="button">
+            <ChevronLeft size={16} /> Voltar
+          </button>
+
+          <Card className="mb-6">
+            <h4 className="font-black text-slate-900 mb-4 text-lg text-center">Configurar Permissões</h4>
+            <div className="space-y-4">
+              {[
+                { label: 'Resultados de Exames', desc: 'Permite ver laudos e imagens', default: true },
+                { label: 'Agenda de Medicamentos', desc: 'Permite acompanhar se tomou', default: true },
+                { label: 'Cadastro de Consultas', desc: 'Pode criar/editar consultas', default: false },
+                { label: 'Sinais Vitais', desc: 'Peso, Pressão, Glicemia', default: true },
+              ].map((perm, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                  <div className="flex-1 pr-4">
+                    <p className="font-bold text-slate-800 text-sm">{perm.label}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{perm.desc}</p>
+                  </div>
+                  <div className={`w-12 h-6 rounded-full relative p-1 transition-colors ${perm.default ? 'bg-blue-600' : 'bg-slate-200'}`}>
+                    <div className={`w-4 h-4 bg-white rounded-full transition-all ${perm.default ? 'ml-6' : 'ml-0'}`}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div className="space-y-3">
+            <Button fullWidth onClick={shareViaWhatsApp} className="bg-[#25D366] border-none">
+              Enviar Convite via WhatsApp
+            </Button>
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase">Ou compartilhe o link direto</p>
+            <div className="flex gap-2">
+              <div className="flex-1 bg-white border border-slate-200 p-4 rounded-2xl text-[10px] font-mono text-slate-400 truncate">
+                vivercom.app/invite/token123...
+              </div>
+              <button className="bg-slate-200 p-4 rounded-2xl text-slate-600" type="button">
+                <ClipboardList size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TabSaudeHistorico = () => {
+  return (
+    <div className="p-6 text-left animate-in">
+      <header className="mb-8">
+        <h1 className="text-2xl font-black text-slate-900 mb-2">Meu Histórico</h1>
+        <p className="text-sm text-slate-500">Acompanhamento e evolução da sua saúde.</p>
+      </header>
+
+      <Card className="mb-6 overflow-hidden border-none shadow-md bg-gradient-to-br from-white to-slate-50">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aderência Geral</h3>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-slate-900">88%</span>
+              <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <ArrowUpRight size={10} /> +12%
+              </span>
+            </div>
+          </div>
+          <div className="bg-blue-100 p-2.5 rounded-2xl text-blue-600">
+            <Activity size={20} />
+          </div>
+        </div>
+
+        <div className="flex items-end justify-between h-16 gap-1 mb-4">
+          {[40, 65, 45, 80, 55, 90, 88].map((h, i) => (
+            <div
+              key={i}
+              style={{ height: `${h}%` }}
+              className={`flex-1 rounded-t-lg transition-all ${i === 6 ? 'bg-blue-600' : 'bg-blue-100 opacity-60'}`}
+            ></div>
+          ))}
+        </div>
+
+        <div className="flex justify-between text-[8px] font-black text-slate-300 uppercase px-1">
+          <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Hoje</span>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center"><Heart size={16} /></div>
+            <span className="text-[9px] font-black text-slate-400 uppercase">Pressão</span>
+          </div>
+          <p className="text-xl font-black text-slate-900">12/8</p>
+          <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Normal • Há 2h</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center"><Droplets size={16} /></div>
+            <span className="text-[9px] font-black text-slate-400 uppercase">Glicemia</span>
+          </div>
+          <p className="text-xl font-black text-slate-900">
+            94 <small className="text-[10px] opacity-40 uppercase">mg/dL</small>
+          </p>
+          <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Em jejum</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center"><Scale size={16} /></div>
+            <span className="text-[9px] font-black text-slate-400 uppercase">Peso</span>
+          </div>
+          <p className="text-xl font-black text-slate-900">
+            72.4 <small className="text-[10px] opacity-40 uppercase">kg</small>
+          </p>
+          <p className="text-[9px] font-bold text-green-500 mt-1 uppercase tracking-tighter">-0.5kg este mês</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center"><Thermometer size={16} /></div>
+            <span className="text-[9px] font-black text-slate-400 uppercase">Temp.</span>
+          </div>
+          <p className="text-xl font-black text-slate-900">36.6°C</p>
+          <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Estável</p>
+        </div>
+      </div>
+
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-black text-slate-900 text-lg">Últimos Resultados</h3>
+          <button className="text-blue-600 text-[10px] font-black uppercase tracking-widest" type="button">Ver Tudo</button>
+        </div>
+        <div className="space-y-3">
+          {[
+            { name: 'Hemograma Completo', date: '12 Dez 2024', status: 'Normal', icon: ClipboardList, color: 'text-blue-500' },
+            { name: 'Colesterol Total', date: '05 Dez 2024', status: 'Atenção', icon: AlertCircle, color: 'text-orange-500' },
+          ].map((item, i) => (
+            <div key={i} className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm">
+              <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center">
+                <item.icon size={20} className={item.color} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800 text-sm">{item.name}</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">{item.date}</p>
+              </div>
+              <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase ${item.status === 'Normal' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// -----------------------------
+//  APP ROOT (with iOS-safe nav)
+// -----------------------------
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
 
-  const handleOnboardingComplete = (userData) => {
-    setUser(userData);
-    setActiveTab('home');
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setActiveTab('home');
-  };
-
   if (!user) {
     return (
       <AppShell>
-        <Onboarding onComplete={handleOnboardingComplete} />
+        <GlobalStyles />
+        <OnboardingFlow onFinish={(userData) => setUser(userData)} />
       </AppShell>
     );
   }
 
   return (
     <AppShell>
-      <div className="relative w-full h-full">
-        <main className="w-full h-full">
-          {activeTab === 'home' && <DashboardModule user={user} />}
-          {activeTab === 'agenda' && <AgendaModule />}
-          {activeTab === 'saude' && <HistoryModule />}
-          {activeTab === 'perfil' && <ProfileModule user={user} onLogout={handleLogout} />}
-        </main>
+      <GlobalStyles />
 
-        {/* nav fixa dentro do shell (não “descola” no iOS) */}
-        <nav className="absolute bottom-0 left-0 right-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex justify-between items-center z-50 rounded-t-[32px] shadow-2xl">
+      {/* Layout interno: scroll do conteúdo + nav ancorada */}
+      <div className="relative w-full h-full flex flex-col">
+        {/* Área rolável */}
+        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 120 }}>
+          {activeTab === 'home' && <TabHome user={user} />}
+          {activeTab === 'agenda' && <TabAgenda />}
+          {activeTab === 'compartilhar' && <TabCompartilhamento />}
+          {activeTab === 'historico' && <TabSaudeHistorico />}
+          {activeTab === 'perfil' && (
+            <div className="p-6 text-left animate-in">
+              <h1 className="text-2xl font-black text-slate-900 mb-8">Meu Perfil</h1>
+
+              <Card className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-[22px] flex items-center justify-center text-blue-600 font-black text-xl">
+                  {user.name.split(' ').map((n) => n[0]).join('')}
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg text-slate-900">{user.name}</h4>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {user.role === 'patient' ? 'Paciente Ativo' : user.role === 'caregiver' ? 'Acompanhante' : 'Profissional'}
+                  </p>
+                </div>
+              </Card>
+
+              <div className="space-y-4">
+                <section>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Dados de Saúde</h3>
+                  <div className="space-y-2">
+                    <button className="w-full p-5 bg-white rounded-2xl flex items-center justify-between border border-slate-100 font-bold text-slate-700" type="button">
+                      <div className="flex items-center gap-3">
+                        <ClipboardList size={20} className="text-blue-500" /> Condições & Alergias
+                      </div>
+                      <ChevronRight size={18} className="text-slate-200" />
+                    </button>
+                    <button className="w-full p-5 bg-white rounded-2xl flex items-center justify-between border border-slate-100 font-bold text-slate-700" type="button">
+                      <div className="flex items-center gap-3">
+                        <TrendingUp size={20} className="text-green-500" /> Objetivos no App
+                      </div>
+                      <ChevronRight size={18} className="text-slate-200" />
+                    </button>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Configurações</h3>
+                  <div className="space-y-2">
+                    <button className="w-full p-5 bg-white rounded-2xl flex items-center justify-between border border-slate-100 font-bold text-slate-700" type="button">
+                      <div className="flex items-center gap-3">
+                        <ShieldCheck size={20} className="text-slate-400" /> Privacidade
+                      </div>
+                      <ChevronRight size={18} className="text-slate-200" />
+                    </button>
+                    <button className="w-full p-5 bg-white rounded-2xl flex items-center justify-between border border-slate-100 font-bold text-slate-700" type="button">
+                      <div className="flex items-center gap-3">
+                        <Bell size={20} className="text-slate-400" /> Notificações
+                      </div>
+                      <ChevronRight size={18} className="text-slate-200" />
+                    </button>
+                  </div>
+                </section>
+
+                <Button fullWidth variant="danger" className="mt-8" onClick={() => setUser(null)}>
+                  Encerrar Sessão
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* NAV: absolute dentro do AppShell (evita “pulo” no iPhone) */}
+        <nav className="absolute bottom-0 left-0 right-0 bg-white/90 ios-blur border-t border-slate-100 p-4 px-6 flex justify-around items-center z-[50] rounded-t-[36px] shadow-2xl safe-area-bottom">
           {[
             { id: 'home', icon: Home, label: 'Início' },
             { id: 'agenda', icon: Calendar, label: 'Agenda' },
-            { id: 'saude', icon: Activity, label: 'Saúde' },
+            { id: 'historico', icon: History, label: 'Saúde' },
+            { id: 'compartilhar', icon: Users, label: 'Rede' },
             { id: 'perfil', icon: User, label: 'Perfil' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1.5 transition-all ${active ? 'text-blue-600' : 'text-gray-300'}`}
-                type="button"
-              >
-                <Icon size={active ? 26 : 24} strokeWidth={active ? 2.5 : 2} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
-              </button>
-            );
-          })}
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center gap-1 transition-all ${activeTab === item.id ? 'text-blue-600 scale-110' : 'text-slate-300'}`}
+              type="button"
+            >
+              <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+              <span className="text-[9px] font-black uppercase tracking-tighter">{item.label}</span>
+            </button>
+          ))}
         </nav>
       </div>
     </AppShell>
