@@ -700,6 +700,22 @@ const TabSaudeHistorico = () => {
 
 const TabPerfil = ({ user, setUser, onEditProfile }) => {
   const [goals, setGoals] = useState([]);
+
+  // ✅ NOVO: Permissões de acesso (somente aqui no Perfil)
+  const [accessPerms, setAccessPerms] = useState({
+    exams_all: true,            // Resultados de exames (todos)
+    exams_selected: false,      // Resultados de exames (selecionar)
+    meds_agenda: true,          // Agenda de medicamentos
+    appointments_manage: false, // Cadastro de consultas
+    basic_health_share: true,   // Compartilhar dados básicos de saúde
+  });
+  const [selectedExams, setSelectedExams] = useState(['Hemograma Completo']); // exemplo
+
+  const toggleAccessPerm = (key) => setAccessPerms(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const toggleExamItem = (name) => {
+    setSelectedExams(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]);
+  };
   
   const toggleGoal = (id) => {
     if (goals.includes(id)) setGoals(goals.filter(g => g !== id));
@@ -765,6 +781,146 @@ const TabPerfil = ({ user, setUser, onEditProfile }) => {
           </div>
         </section>
       )}
+
+      {/* ✅ 3. PERMISSÕES DE ACESSO (NOVO - APENAS PERFIL) */}
+      <section className="mb-8">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Permissões de Acesso</h3>
+
+        <Card className="p-4">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+              <UserCheck size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="font-black text-slate-900 text-sm">Controle o que sua rede pode ver</p>
+              <p className="text-[10px] text-slate-400 font-medium">
+                Você define o nível de acesso para acompanhantes e profissionais.
+              </p>
+            </div>
+          </div>
+
+          {/* switches (mantendo o mesmo “estilo” do app) */}
+          {[
+            {
+              key: 'exams_all',
+              label: 'Resultados de exames',
+              desc: 'Visualizar todos os exames',
+              lockedBy: 'exams_selected',
+            },
+            {
+              key: 'exams_selected',
+              label: 'Resultados de exames',
+              desc: 'Selecionar exames específicos',
+              lockedBy: 'exams_all',
+            },
+            {
+              key: 'meds_agenda',
+              label: 'Agenda de medicamentos',
+              desc: 'Ver rotina e marcações de tomada',
+            },
+            {
+              key: 'appointments_manage',
+              label: 'Cadastro de consultas',
+              desc: 'Criar/editar consultas médicas',
+            },
+            {
+              key: 'basic_health_share',
+              label: 'Dados básicos de saúde',
+              desc: 'Compartilhar peso, pressão, glicemia e temperatura',
+            },
+          ].map((perm, i) => {
+            const isOn = !!accessPerms[perm.key];
+            const isLocked =
+              perm.lockedBy && accessPerms[perm.lockedBy] === true;
+
+            return (
+              <button
+                key={perm.key}
+                onClick={() => {
+                  if (isLocked) return;
+
+                  // lógica: "todos" vs "selecionar" não podem ficar ambos true ao mesmo tempo
+                  if (perm.key === 'exams_all') {
+                    setAccessPerms(prev => ({
+                      ...prev,
+                      exams_all: !prev.exams_all,
+                      exams_selected: prev.exams_all ? prev.exams_selected : false,
+                    }));
+                    return;
+                  }
+
+                  if (perm.key === 'exams_selected') {
+                    setAccessPerms(prev => ({
+                      ...prev,
+                      exams_selected: !prev.exams_selected,
+                      exams_all: prev.exams_selected ? prev.exams_all : false,
+                    }));
+                    return;
+                  }
+
+                  toggleAccessPerm(perm.key);
+                }}
+                className="w-full flex items-center justify-between py-3 border-b border-slate-50 last:border-0 text-left active:scale-[0.99] transition-all"
+                type="button"
+              >
+                <div className="flex-1 pr-4">
+                  <p className={`font-bold text-sm ${isLocked ? 'text-slate-300' : 'text-slate-800'}`}>{perm.label}</p>
+                  <p className={`text-[10px] font-medium ${isLocked ? 'text-slate-200' : 'text-slate-400'}`}>{perm.desc}</p>
+                </div>
+
+                <div className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isOn ? 'bg-blue-600' : 'bg-slate-200'} ${isLocked ? 'opacity-40' : ''}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full transition-all ${isOn ? 'ml-6' : 'ml-0'}`}></div>
+                </div>
+              </button>
+            );
+          })}
+
+          {/* se "selecionar exames" estiver ativo, mostra lista exemplo */}
+          {accessPerms.exams_selected && !accessPerms.exams_all && (
+            <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Exames liberados</p>
+                <span className="text-[10px] font-black text-blue-600 uppercase">{selectedExams.length} selecionado(s)</span>
+              </div>
+
+              <div className="space-y-2">
+                {[
+                  'Hemograma Completo',
+                  'Colesterol Total',
+                  'Glicemia em jejum',
+                  'TSH / T4',
+                ].map((exam) => {
+                  const active = selectedExams.includes(exam);
+                  return (
+                    <button
+                      key={exam}
+                      onClick={() => toggleExamItem(exam)}
+                      className={`w-full p-3 rounded-2xl border flex items-center gap-3 transition-all text-left ${active ? 'bg-white border-blue-200' : 'bg-white/70 border-slate-200'}`}
+                      type="button"
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-800">{exam}</p>
+                        <p className="text-[10px] font-medium text-slate-400">Exemplo</p>
+                      </div>
+                      {active && <Check size={18} className="text-blue-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex items-center gap-3 p-3 bg-blue-50 rounded-2xl border border-blue-100">
+                <Info size={16} className="text-blue-600" />
+                <p className="text-[10px] text-blue-800 font-medium">
+                  Dica: use “Selecionar exames específicos” quando quiser liberar só alguns laudos.
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      </section>
 
       {/* 3. REDE DE APOIO / PACIENTES */}
       <section className="mb-8">
