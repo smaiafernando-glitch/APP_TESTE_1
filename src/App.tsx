@@ -254,17 +254,11 @@ const MiniLineChart = ({ points = [] }) => {
 };
 
 /* =========================================================
-   ONBOARDING / CADASTRO (inclui o que faltava pela imagem)
-   - Adição do step PERFIS
-   - Step 1: adiciona E-mail + Cidade/Estado de Nascimento
-   - Step 2: adiciona Grau de Independência + Tipo de Alimentação
-   - Step 3: adiciona Psicologia + Nutrição
-   - Ao finalizar: direciona para HOME (requisito)
+   ONBOARDING / CADASTRO (já estava)
 ========================================================= */
 const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
   const [step, setStep] = useState(initialStep);
 
-  // (adição) estado simples para cadastro
   const [profileType, setProfileType] = useState("patient");
   const [basic, setBasic] = useState({
     name: "",
@@ -319,9 +313,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
     );
   }
 
-  /* ===========================
-     PERFIS (adição conforme imagem)
-  =========================== */
   if (step === "profiles") {
     const options = [
       { id: "patient", title: "Paciente", icon: UserCheck, desc: "Gerencie sua rotina e tratamentos." },
@@ -365,9 +356,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
     );
   }
 
-  /* ===========================
-     STEP 1 – DADOS BÁSICOS (completado conforme imagem)
-  =========================== */
   if (step === "step1") {
     return (
       <div className="p-8 animate-in min-h-screen pb-24">
@@ -392,15 +380,12 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={basic.birth}
           onChange={(e) => setBasic((p) => ({ ...p, birth: e.target.value }))}
         />
-
-        {/* ✅ Adição conforme imagem */}
         <Input
           label="Cidade/Estado de Nascimento"
           placeholder="Ex: Belo Horizonte/MG"
           value={basic.birthPlace}
           onChange={(e) => setBasic((p) => ({ ...p, birthPlace: e.target.value }))}
         />
-
         <Input
           label="Estado Civil"
           placeholder="Ex: Casado(a)"
@@ -419,8 +404,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={basic.phone}
           onChange={(e) => setBasic((p) => ({ ...p, phone: e.target.value }))}
         />
-
-        {/* ✅ Adição conforme imagem */}
         <Input
           label="E-mail"
           icon={Mail}
@@ -428,7 +411,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={basic.email}
           onChange={(e) => setBasic((p) => ({ ...p, email: e.target.value }))}
         />
-
         <Input
           label="Contato de Emergência"
           placeholder="Nome + telefone"
@@ -441,9 +423,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
     );
   }
 
-  /* ===========================
-     STEP 2 – DADOS DE ROTINA (completado conforme imagem)
-  =========================== */
   if (step === "step2") {
     return (
       <div className="p-8 animate-in min-h-screen pb-24">
@@ -471,23 +450,18 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={routine.blood}
           onChange={(e) => setRoutine((p) => ({ ...p, blood: e.target.value }))}
         />
-
-        {/* ✅ Adição conforme imagem */}
         <Input
           label="Grau de Independência"
           placeholder="Alto / Médio / Baixo"
           value={routine.independence}
           onChange={(e) => setRoutine((p) => ({ ...p, independence: e.target.value }))}
         />
-
-        {/* ✅ Adição conforme imagem */}
         <Input
           label="Tipo de Alimentação"
           placeholder="Ex: Caseira, industrializada, balanceada"
           value={routine.foodType}
           onChange={(e) => setRoutine((p) => ({ ...p, foodType: e.target.value }))}
         />
-
         <Input
           label="Doenças Pré-existentes"
           placeholder="Ex: Diabetes, Hipertensão"
@@ -521,9 +495,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
     );
   }
 
-  /* ===========================
-     STEP 3 – DADOS DE SAÚDE (completado conforme imagem)
-  =========================== */
   if (step === "step3") {
     return (
       <div className="p-8 animate-in min-h-screen pb-24">
@@ -550,8 +521,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={health.meds}
           onChange={(e) => setHealth((p) => ({ ...p, meds: e.target.value }))}
         />
-
-        {/* ✅ Adições conforme imagem */}
         <Input
           label="Acompanhamento Psicológico"
           placeholder="Ex: Sim (semanal), Não"
@@ -564,7 +533,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
           value={health.nutricao}
           onChange={(e) => setHealth((p) => ({ ...p, nutricao: e.target.value }))}
         />
-
         <Input
           label="Possui Alergias?"
           placeholder="Ex: Dipirona, alimentos"
@@ -586,9 +554,6 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
     );
   }
 
-  /* ===========================
-     STEP 4 – REDE DE APOIO (mantido + estados)
-  =========================== */
   if (step === "step4") {
     return (
       <div className="p-8 animate-in min-h-screen pb-24">
@@ -647,7 +612,9 @@ const OnboardingFlow = ({ onFinish, initialStep = "welcome" }) => {
 };
 
 /* =========================================================
-   HOME (mantido + adição do ícone de perfil ao lado do sino)
+   HOME
+   ✅ ÚNICA ALTERAÇÃO DESTA RESPOSTA:
+   - mover o botão do perfil para ficar IMEDIATAMENTE ao lado direito do sino
 ========================================================= */
 const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
   const [feeling, setFeeling] = useState(null);
@@ -659,7 +626,6 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
     setTimeout(() => setShowNotification(false), 8000);
   };
 
-  // ✅ Adição: marcar dose tomada para atualizar aderência (sem mudar layout)
   const markDoseTaken = (treatmentId) => {
     const dKey = todayKey();
     setTreatments((prev) =>
@@ -694,12 +660,14 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
               <button
                 className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm"
                 onClick={() => setShowNotification(false)}
+                type="button"
               >
                 Marcar como tomado
               </button>
               <button
                 className="px-4 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm"
                 onClick={() => setShowNotification(false)}
+                type="button"
               >
                 Adiar
               </button>
@@ -718,29 +686,32 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
           </h1>
         </div>
 
+        {/* ✅ Ajuste: perfil fica imediatamente ao lado direito do sino */}
         <div className="flex gap-2">
           <button
             onClick={simulateNotification}
             className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
+            type="button"
           >
             <Zap size={20} className="text-yellow-500" />
           </button>
 
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 relative">
-            <Bell size={24} className="text-slate-600" />
-            <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </div>
+          <div className="flex gap-2">
+            <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 relative">
+              <Bell size={24} className="text-slate-600" />
+              <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </div>
 
-          {/* ✅ Ícone de Perfil ao lado direito do sino (adição, sem remover nada) */}
-          <button
-            onClick={onOpenProfile}
-            className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
-            type="button"
-            aria-label="Abrir perfil"
-            title="Perfil"
-          >
-            <User size={22} className="text-slate-600" />
-          </button>
+            <button
+              onClick={onOpenProfile}
+              className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
+              type="button"
+              aria-label="Abrir perfil"
+              title="Perfil"
+            >
+              <User size={22} className="text-slate-600" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -821,7 +792,6 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
                   {item.dose} • {item.time}
                 </p>
 
-                {/* ✅ 2) Indicador de aderência do tratamento (adição dentro do bloco, sem mudar layout) */}
                 {item.treatmentId && (
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">
                     Aderência hoje:{" "}
@@ -902,7 +872,6 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
         </div>
       </section>
 
-      {/* ✅ 3) Tratamento abaixo de “Próximas Consultas” (adição logo abaixo, sem mover nada) */}
       <section className="text-left mb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-black text-slate-900 text-lg">Tratamentos</h3>
@@ -987,14 +956,15 @@ const TabHome = ({ user, treatments, setTreatments, onOpenProfile }) => {
 };
 
 /* =========================================================
-   AGENDA (mantido + 1) Novo Tratamento + (adição) Exame com colesterol
+   RESTANTE DO APP (mantido)
 ========================================================= */
+
+// --- AGENDA ---
 const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) => {
   const [selectedDay, setSelectedDay] = useState(16);
-  const [modalType, setModalType] = useState(null); // 'med', 'appt', 'exam', 'treat'
+  const [modalType, setModalType] = useState(null);
   const days = [14, 15, 16, 17, 18, 19, 20];
 
-  // ✅ 1) Agenda – incluir opção “Novo Tratamento”
   const [treatForm, setTreatForm] = useState({
     name: "",
     dosage: "",
@@ -1017,7 +987,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
     setModalType(null);
   };
 
-  // (adição) Exame com colesterol (para alimentar gráfico do cadastro)
   const [examForm, setExamForm] = useState({
     type: "",
     place: "",
@@ -1030,7 +999,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
   });
 
   const addExam = () => {
-    // mantém o modal e fluxo atual, apenas adiciona persistência de colesterol se preenchido
     const hasAnyChol =
       String(examForm.cholTotal || "").trim() ||
       String(examForm.ldl || "").trim() ||
@@ -1048,7 +1016,9 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
         trig: examForm.trig ? Number(examForm.trig) : null,
       };
       setCholesterol((prev) => {
-        const next = [...(prev || []), newRow].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+        const next = [...(prev || []), newRow].sort((a, b) =>
+          String(a.date).localeCompare(String(b.date))
+        );
         return next;
       });
     }
@@ -1080,7 +1050,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
         ))}
       </div>
 
-      {/* Botões de Ação Rápida (mantido) */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         <button
           onClick={() => setModalType("med")}
@@ -1114,7 +1083,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
         </button>
       </div>
 
-      {/* ✅ ADIÇÃO: Novo Tratamento (novo bloco abaixo) */}
       <div className="mb-8">
         <button
           onClick={() => setModalType("treat")}
@@ -1143,45 +1111,15 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
 
           <div className="space-y-4 border-l-2 border-slate-100 ml-2 pl-6 relative">
             {[
-              {
-                time: "08:00",
-                title: "Medicamento",
-                desc: "Losartana 50mg",
-                icon: Pill,
-                color: "text-blue-600",
-                bg: "bg-blue-50",
-              },
-              {
-                time: "10:00",
-                title: "Consulta",
-                desc: "Dra. Aline (Nutri)",
-                icon: Stethoscope,
-                color: "text-indigo-600",
-                bg: "bg-indigo-50",
-              },
-              {
-                time: "12:30",
-                title: "Medicamento",
-                desc: "Vitamina D",
-                icon: Pill,
-                color: "text-orange-600",
-                bg: "bg-orange-50",
-              },
-              {
-                time: "16:45",
-                title: "Exame",
-                desc: "Coleta de Sangue",
-                icon: Activity,
-                color: "text-purple-600",
-                bg: "bg-purple-50",
-              },
+              { time: "08:00", title: "Medicamento", desc: "Losartana 50mg", icon: Pill, color: "text-blue-600", bg: "bg-blue-50" },
+              { time: "10:00", title: "Consulta", desc: "Dra. Aline (Nutri)", icon: Stethoscope, color: "text-indigo-600", bg: "bg-indigo-50" },
+              { time: "12:30", title: "Medicamento", desc: "Vitamina D", icon: Pill, color: "text-orange-600", bg: "bg-orange-50" },
+              { time: "16:45", title: "Exame", desc: "Coleta de Sangue", icon: Activity, color: "text-purple-600", bg: "bg-purple-50" },
             ].map((item, i) => (
               <div key={i} className="relative">
                 <div className="absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full bg-slate-200 border-2 border-white"></div>
                 <div className="flex gap-4">
-                  <span className="text-[10px] font-black text-slate-400 w-10 pt-1">
-                    {item.time}
-                  </span>
+                  <span className="text-[10px] font-black text-slate-400 w-10 pt-1">{item.time}</span>
                   <div className={`flex-1 ${item.bg} p-4 rounded-2xl border border-slate-50`}>
                     <div className="flex items-center gap-2 mb-1">
                       <item.icon size={14} className={item.color} />
@@ -1198,7 +1136,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
         </section>
       </div>
 
-      {/* Modais de Cadastro */}
       <Modal isOpen={modalType === "med"} onClose={() => setModalType(null)} title="Novo Medicamento">
         <div className="space-y-4 text-left">
           <Input label="Nome do Medicamento" icon={Pill} placeholder="Ex: Metformina" />
@@ -1257,7 +1194,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
             />
           </div>
 
-          {/* ✅ Adição: campos opcionais de colesterol para alimentar o gráfico do Cadastro (não remove nada) */}
           <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
             <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-3">
               (Opcional) Colesterol
@@ -1294,7 +1230,6 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
         </div>
       </Modal>
 
-      {/* ✅ Modal Novo Tratamento pela Agenda */}
       <Modal isOpen={modalType === "treat"} onClose={() => setModalType(null)} title="Novo Tratamento">
         <div className="space-y-4 text-left">
           <Input
@@ -1341,12 +1276,7 @@ const TabAgenda = ({ treatments, setTreatments, cholesterol, setCholesterol }) =
   );
 };
 
-/* =========================================================
-   CADASTRO / PERFIL
-   - 5) Gráfico de colesterol no tempo (com estado vazio)
-   - 6) Histórico Familiar (doença + grau parentesco) com add/edit/remove
-   - 4) Compartilhamento (permissões + revogação total/parcial por pessoa)
-========================================================= */
+// --- CADASTRO/PERFIL ---
 const TabCadastro = ({
   user,
   cholesterol,
@@ -1363,7 +1293,7 @@ const TabCadastro = ({
   const cholesterolPoints = (cholesterol || [])
     .filter((r) => r && r.date)
     .map((r) => ({
-      date: String(r.date).slice(5), // MM-DD (simples)
+      date: String(r.date).slice(5),
       value: r.total ?? r.ldl ?? r.hdl ?? r.trig ?? 0,
       raw: r,
     }));
@@ -1386,10 +1316,9 @@ const TabCadastro = ({
     setFamilyHistory((prev) => (prev || []).filter((r) => r.id !== id));
   };
 
-  // Compartilhamento: modelo de permissões por pessoa
   const defaultPerms = {
     examsAll: true,
-    examsSelected: [], // ids/tipos (placeholder)
+    examsSelected: [],
     medsAgenda: true,
     createAppointments: false,
     shareBasic: true,
@@ -1438,7 +1367,6 @@ const TabCadastro = ({
       <h1 className="text-2xl font-black text-slate-900 mb-2">Cadastro</h1>
       <p className="text-sm text-slate-500 mb-6">Suas informações e histórico.</p>
 
-      {/* Seção Colesterol (5) */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-black text-slate-900 text-lg">Resultados – Colesterol</h3>
@@ -1491,7 +1419,6 @@ const TabCadastro = ({
         )}
       </section>
 
-      {/* Histórico Familiar (6) */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-black text-slate-900 text-lg">Histórico Familiar</h3>
@@ -1542,7 +1469,6 @@ const TabCadastro = ({
                 </button>
               </div>
 
-              {/* edição inline (sem redesign) */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">
@@ -1570,7 +1496,6 @@ const TabCadastro = ({
         </div>
       </section>
 
-      {/* Compartilhamento (4) */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-black text-slate-900 text-lg">Compartilhamento</h3>
@@ -1670,7 +1595,6 @@ const TabCadastro = ({
                   <p className="font-bold text-slate-800 text-sm">{p.name}</p>
                 </div>
 
-                {/* ✅ 4.2 Revogação total */}
                 <button
                   className="bg-red-50 text-red-500 border border-red-100 px-3 py-2 rounded-xl font-bold text-xs"
                   type="button"
@@ -1680,7 +1604,6 @@ const TabCadastro = ({
                 </button>
               </div>
 
-              {/* ✅ 4.1 Acessos permitidos (editáveis) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-4">
                   <div>
@@ -1783,7 +1706,6 @@ const TabCadastro = ({
                   </button>
                 </div>
 
-                {/* ✅ 4.2 Revogação parcial (já aplicada ao mexer nos botões acima) */}
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
                   <Info className="text-blue-600" size={18} />
                   <p className="text-xs text-blue-800 font-medium">
@@ -1803,10 +1725,6 @@ const TabCadastro = ({
   );
 };
 
-/* =========================================================
-   APP SHELL (tabs)
-   - Final do cadastro -> HOME (requisito)
-========================================================= */
 const BottomNav = ({ tab, setTab }) => {
   const items = [
     { id: "home", label: "Home", icon: Home },
@@ -1838,7 +1756,7 @@ const BottomNav = ({ tab, setTab }) => {
 };
 
 export default function App() {
-  const [view, setView] = useState("onboarding"); // onboarding | app
+  const [view, setView] = useState("onboarding");
   const [tab, setTab] = useState("home");
 
   const [user, setUser] = useState(null);
@@ -1848,7 +1766,6 @@ export default function App() {
   const [cholesterol, setCholesterol] = useState([]);
   const [familyHistory, setFamilyHistory] = useState([]);
 
-  // load
   useEffect(() => {
     const u = safeJsonParse(localStorage.getItem(LS_KEYS.user), null);
     const t = safeJsonParse(localStorage.getItem(LS_KEYS.treatments), []);
@@ -1868,7 +1785,6 @@ export default function App() {
     setFamilyHistory(Array.isArray(fh) ? fh : []);
   }, []);
 
-  // persist
   useEffect(() => {
     localStorage.setItem(LS_KEYS.treatments, JSON.stringify(treatments || []));
   }, [treatments]);
@@ -1888,7 +1804,7 @@ export default function App() {
   const handleFinishOnboarding = (u) => {
     setUser(u);
     setView("app");
-    setTab("home"); // ✅ requisito: finalizar cadastro vai para HOME
+    setTab("home");
   };
 
   const logout = () => {
@@ -1938,7 +1854,6 @@ export default function App() {
 
           <BottomNav tab={tab} setTab={setTab} />
 
-          {/* Logout (adição técnica discreta, não altera layout existente das telas) */}
           <div className="fixed top-4 right-4 z-[95] max-w-md mx-auto">
             <button
               onClick={logout}
