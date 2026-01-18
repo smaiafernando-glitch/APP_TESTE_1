@@ -159,372 +159,110 @@ const MiniLineChart = ({ points = [] }) => {
 
 // --- FLUXO DE ONBOARDING / CADASTRO ---
 
-const OnboardingFlow = ({
-  onFinish,
-  initialStep = 'welcome',
-  cholesterolResults,
-  setCholesterolResults,
-  familyHistory,
-  setFamilyHistory,
-}) => {
+const OnboardingFlow = ({ onFinish, initialStep = 'welcome' }) => {
   const [step, setStep] = useState(initialStep);
-  const [profileType, setProfileType] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', birthDate: '', password: '', role: '' });
 
-  // ✅ ADIÇÃO: modais e inputs de cadastro (não remove nada existente)
-  const [cholModalOpen, setCholModalOpen] = useState(false);
-  const [cholForm, setCholForm] = useState({ date: '', total: '' });
-
-  const [fhModalOpen, setFhModalOpen] = useState(false);
-  const [fhForm, setFhForm] = useState({ disease: '', relation: 'Pai' });
-
-  const nextStep = (next) => setStep(next);
+  const next = (s) => setStep(s);
+  const back = (s) => setStep(s);
 
   if (step === 'welcome') {
     return (
       <div className="flex-1 flex flex-col p-8 animate-in text-center justify-center min-h-screen">
-        <div className="mb-12 flex justify-center">
-          <div className="w-24 h-24 bg-blue-600 rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-200">
-            <Heart size={48} className="text-white" />
-          </div>
-        </div>
-        <h1 className="text-4xl font-black text-slate-900 mb-4 leading-tight">Seu app de autogestão de saúde</h1>
-        <p className="text-slate-500 text-lg mb-12">Organize seus tratamentos, acompanhe sua saúde e compartilhe informações com quem cuida de você.</p>
-        <div className="space-y-4">
-          <Button fullWidth onClick={() => nextStep('profile_type')}>Criar conta</Button>
-          <Button fullWidth variant="secondary" onClick={() => onFinish({ name: 'Carlos Silva', role: 'patient' })}>Já tenho conta</Button>
+        <h1 className="text-3xl font-black mb-6">Bem-vindo ao VIVERCOM</h1>
+        <Button fullWidth onClick={() => next('step1')}>Criar conta</Button>
+      </div>
+    );
+  }
+
+  /* ===========================
+     STEP 1 – DADOS BÁSICOS
+  =========================== */
+  if (step === 'step1') {
+    return (
+      <div className="p-8 animate-in min-h-screen pb-24">
+        <h2 className="text-xl font-black mb-6">Dados Básicos</h2>
+
+        <Input label="Nome Completo" icon={User} />
+        <Input label="CPF" placeholder="000.000.000-00" />
+        <Input label="Data de Nascimento" type="date" icon={Calendar} />
+        <Input label="Estado Civil" placeholder="Ex: Casado(a)" />
+        <Input label="Endereço Completo" placeholder="Rua, número, cidade, UF" />
+        <Input label="Telefone" icon={Phone} />
+        <Input label="Contato de Emergência" placeholder="Nome + telefone" />
+
+        <Button fullWidth onClick={() => next('step2')}>Avançar</Button>
+      </div>
+    );
+  }
+
+  /* ===========================
+     STEP 2 – DADOS DE ROTINA
+  =========================== */
+  if (step === 'step2') {
+    return (
+      <div className="p-8 animate-in min-h-screen pb-24">
+        <h2 className="text-xl font-black mb-6">Dados de Rotina</h2>
+
+        <Input label="Sexo" placeholder="Masculino / Feminino / Outro" />
+        <Input label="Altura (cm)" />
+        <Input label="Peso (kg)" />
+        <Input label="Grupo Sanguíneo" placeholder="Ex: O+, A-" />
+        <Input label="Doenças Pré-existentes" placeholder="Ex: Diabetes, Hipertensão" />
+        <Input label="Hábitos de Vida" placeholder="Ex: Fuma, bebe, sedentário" />
+        <Input label="Pratica Atividade Física?" placeholder="Ex: Sim, 3x por semana" />
+        <Input label="Trabalho / Profissão" placeholder="Opcional" />
+
+        <div className="flex gap-3">
+          <Button variant="secondary" fullWidth onClick={() => back('step1')}>Voltar</Button>
+          <Button fullWidth onClick={() => next('step3')}>Avançar</Button>
         </div>
       </div>
     );
   }
 
-  if (step === 'profile_type') {
+  /* ===========================
+     STEP 3 – DADOS DE SAÚDE
+  =========================== */
+  if (step === 'step3') {
     return (
-      <div className="p-8 animate-in min-h-screen">
-        <button onClick={() => setStep('welcome')} className="mb-8 p-2 bg-white rounded-full shadow-sm"><ChevronLeft size={24} /></button>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Como você vai usar o app?</h2>
-        <p className="text-slate-500 mb-8">Sua escolha define como o app irá funcionar para você.</p>
-        
-        <div className="space-y-4">
-          {[
-            { id: 'patient', title: 'Sou paciente', desc: 'Para gerenciar minha própria saúde.', icon: User },
-            { id: 'caregiver', title: 'Sou acompanhante', desc: 'Rede de apoio para familiares.', icon: Users },
-            { id: 'professional', title: 'Sou profissional', desc: 'Médico, nutricionista ou cuidador.', icon: Stethoscope }
-          ].map((type) => (
-            <button 
-              key={type.id}
-              onClick={() => { setProfileType(type.id); nextStep('form'); }}
-              className="w-full bg-white p-6 rounded-[28px] border-2 border-transparent hover:border-blue-600 transition-all flex items-center gap-4 text-left shadow-sm active:scale-95"
-            >
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                <type.icon size={24} />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-slate-900">{type.title}</h4>
-                <p className="text-xs text-slate-400">{type.desc}</p>
-              </div>
-              <ChevronRight className="text-slate-200" />
-            </button>
-          ))}
+      <div className="p-8 animate-in min-h-screen pb-24">
+        <h2 className="text-xl font-black mb-6">Dados de Saúde</h2>
+
+        <Input label="Antecedentes de Saúde" placeholder="Ex: cirurgias, internações" />
+        <Input label="Doenças Atuais" />
+        <Input label="Tratamento Atual" />
+        <Input label="Medicamentos em Uso" />
+        <Input label="Possui Alergias?" placeholder="Ex: Dipirona, alimentos" />
+        <Input label="Histórico Familiar (inicial)" placeholder="Detalhado depois" />
+
+        <div className="flex gap-3">
+          <Button variant="secondary" fullWidth onClick={() => back('step2')}>Voltar</Button>
+          <Button fullWidth onClick={() => next('step4')}>Avançar</Button>
         </div>
       </div>
     );
   }
 
-  if (step === 'form') {
+  /* ===========================
+     STEP 4 – REDE DE APOIO
+  =========================== */
+  if (step === 'step4') {
     return (
-      <div className="p-8 animate-in min-h-screen pb-20">
-        <button onClick={() => setStep('profile_type')} className="mb-8 p-2 bg-white rounded-full shadow-sm"><ChevronLeft size={24} /></button>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Quase lá!</h2>
-        <p className="text-slate-500 mb-8">Precisamos de alguns dados básicos para começar.</p>
-        
-        <div className="space-y-2">
-          <Input label="Nome Completo" icon={User} placeholder="Seu nome aqui" />
-          {profileType === 'professional' && <Input label="Profissão / Registro" icon={Stethoscope} placeholder="Ex: Médico CRM 12345" />}
-          <Input label="Data de Nascimento" icon={Calendar} type="date" />
-          <Input label="E-mail" icon={Mail} type="email" placeholder="seu@email.com" />
-          <Input label="Celular (WhatsApp)" icon={Phone} type="tel" placeholder="(00) 00000-0000" />
-          <Input label="Senha" icon={Lock} type="password" placeholder="••••••••" />
-          
-          <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl mb-8">
-            <input type="checkbox" className="mt-1 w-5 h-5 rounded-lg" defaultChecked />
-            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b> do app VIVERCOM.</p>
-          </div>
+      <div className="p-8 animate-in min-h-screen pb-24">
+        <h2 className="text-xl font-black mb-6">Rede de Apoio</h2>
 
-          <Button fullWidth onClick={() => profileType === 'patient' ? nextStep('optional') : onFinish({ name: 'Novo Usuário', role: profileType })}>
+        <Input label="Contato de Emergência" />
+        <Input label="Médico de Referência" />
+        <Input label="Telefone do Médico" />
+        <Input label="E-mail do Médico" />
+        <Input label="Observações" placeholder="Opcional" />
+
+        <div className="flex gap-3">
+          <Button variant="secondary" fullWidth onClick={() => back('step3')}>Voltar</Button>
+          <Button fullWidth onClick={() => onFinish({ name: 'Novo Usuário', role: 'patient' })}>
             Finalizar Cadastro
           </Button>
         </div>
-      </div>
-    );
-  }
-
-  if (step === 'optional') {
-    return (
-      <div className="p-8 animate-in min-h-screen text-center flex flex-col justify-center">
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Personalize sua experiência</h2>
-        <p className="text-slate-500 mb-8">Isso nos ajuda a preparar o app para você.</p>
-        
-        <Card className="mb-8 text-left space-y-6">
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Você possui condições crônicas?</label>
-            <div className="flex flex-wrap gap-2">
-              {['Diabetes', 'Hipertensão', 'Obesidade', 'Asma'].map(c => (
-                <button key={c} className="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold text-slate-600">{c}</button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-700">Faz uso de remédios contínuos?</span>
-            <div className="flex gap-2">
-               <button className="px-4 py-2 bg-slate-100 rounded-xl text-xs font-black">NÃO</button>
-               <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black">SIM</button>
-            </div>
-          </div>
-        </Card>
-
-        {/* ✅ 5) Cadastro – Gráfico de colesterol (adição abaixo do que já existe) */}
-        <Card className="mb-6 text-left">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-              <TrendingUp size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="font-black text-slate-900 text-sm">Resultados – Colesterol</p>
-              <p className="text-[10px] text-slate-400 font-medium">Evolução no tempo (exemplo). Atualiza ao cadastrar novos exames.</p>
-            </div>
-            <button
-              onClick={() => setCholModalOpen(true)}
-              className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 text-blue-600 active:scale-95 transition-all"
-              type="button"
-            >
-              <Plus size={18} />
-            </button>
-          </div>
-
-          {(!cholesterolResults || cholesterolResults.length === 0) ? (
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-sm font-bold text-slate-700">Sem resultados cadastrados</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Toque no + para adicionar um resultado de colesterol.</p>
-            </div>
-          ) : (
-            <>
-              <MiniLineChart
-                points={cholesterolResults
-                  .slice(-6)
-                  .map(r => ({ date: r.date, value: r.total }))}
-              />
-              <div className="mt-4 space-y-2">
-                {cholesterolResults.slice(-3).reverse().map((r, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-200">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{r.date}</p>
-                      <p className="text-sm font-bold text-slate-800">Colesterol Total</p>
-                    </div>
-                    <span className="text-lg font-black text-slate-900">{r.total}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </Card>
-
-        {/* ✅ 6) Cadastro – Histórico familiar (adição abaixo do que já existe) */}
-        <Card className="mb-8 text-left">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-              <Users size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="font-black text-slate-900 text-sm">Histórico Familiar</p>
-              <p className="text-[10px] text-slate-400 font-medium">Adicione doença + grau de parentesco (você pode editar/remover).</p>
-            </div>
-            <button
-              onClick={() => setFhModalOpen(true)}
-              className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 text-blue-600 active:scale-95 transition-all"
-              type="button"
-            >
-              <Plus size={18} />
-            </button>
-          </div>
-
-          {(!familyHistory || familyHistory.length === 0) ? (
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-sm font-bold text-slate-700">Nenhum item cadastrado</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Toque no + para adicionar um registro.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {familyHistory.map((item, idx) => (
-                <div key={idx} className="bg-white p-4 rounded-[22px] border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.relation}</p>
-                      <p className="text-sm font-bold text-slate-800">{item.disease}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const next = familyHistory.filter((_, i) => i !== idx);
-                        setFamilyHistory(next);
-                      }}
-                      className="text-red-500 p-2 rounded-xl bg-red-50 active:scale-90 transition-all"
-                      type="button"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  {/* edição inline (adição, sem remover nada) */}
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="text-left">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">Grau</label>
-                      <select
-                        value={item.relation}
-                        onChange={(e) => {
-                          const next = [...familyHistory];
-                          next[idx] = { ...next[idx], relation: e.target.value };
-                          setFamilyHistory(next);
-                        }}
-                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 font-bold outline-none h-[58px]"
-                      >
-                        {['Pai','Mãe','Irmão/Irmã','Avô/Avó','Tio/Tia','Primo/Prima','Outro'].map(opt => (
-                          <option key={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <Input
-                      label="Doença"
-                      icon={AlertCircle}
-                      placeholder="Ex: Hipertensão"
-                      value={item.disease}
-                      onChange={(e) => {
-                        const next = [...familyHistory];
-                        next[idx] = { ...next[idx], disease: e.target.value };
-                        setFamilyHistory(next);
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <div className="space-y-4">
-          <Button fullWidth onClick={() => nextStep('first_experience')}>Continuar</Button>
-          <button onClick={() => nextStep('first_experience')} className="text-slate-400 font-bold text-sm">Pular por enquanto</button>
-        </div>
-
-        {/* Modais do Cadastro (adição) */}
-        <Modal
-          isOpen={cholModalOpen}
-          onClose={() => setCholModalOpen(false)}
-          title="Adicionar Colesterol"
-        >
-          <div className="space-y-4 text-left">
-            <Input
-              label="Data do exame"
-              icon={Calendar}
-              type="date"
-              value={cholForm.date}
-              onChange={(e) => setCholForm(prev => ({ ...prev, date: e.target.value }))}
-            />
-            <Input
-              label="Colesterol total"
-              icon={TrendingUp}
-              placeholder="Ex: 190"
-              value={cholForm.total}
-              onChange={(e) => setCholForm(prev => ({ ...prev, total: e.target.value }))}
-            />
-            <Button
-              fullWidth
-              onClick={() => {
-                const date = cholForm.date || todayKey();
-                const total = Number(cholForm.total || 0);
-                const next = [...(cholesterolResults || []), { date, total }];
-                // ordena por data (simples, string yyyy-mm-dd)
-                next.sort((a, b) => (a.date > b.date ? 1 : -1));
-                setCholesterolResults(next);
-                setCholForm({ date: '', total: '' });
-                setCholModalOpen(false);
-              }}
-              disabled={!cholForm.total}
-            >
-              Salvar Resultado
-            </Button>
-          </div>
-        </Modal>
-
-        <Modal
-          isOpen={fhModalOpen}
-          onClose={() => setFhModalOpen(false)}
-          title="Adicionar Histórico Familiar"
-        >
-          <div className="space-y-4 text-left">
-            <div className="text-left">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block px-1">Grau de parentesco</label>
-              <select
-                value={fhForm.relation}
-                onChange={(e) => setFhForm(prev => ({ ...prev, relation: e.target.value }))}
-                className="w-full bg-white border border-slate-200 rounded-2xl p-4 font-bold outline-none h-[58px]"
-              >
-                {['Pai','Mãe','Irmão/Irmã','Avô/Avó','Tio/Tia','Primo/Prima','Outro'].map(opt => (
-                  <option key={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            <Input
-              label="Doença"
-              icon={AlertCircle}
-              placeholder="Ex: Diabetes"
-              value={fhForm.disease}
-              onChange={(e) => setFhForm(prev => ({ ...prev, disease: e.target.value }))}
-            />
-
-            <Button
-              fullWidth
-              onClick={() => {
-                const next = [...(familyHistory || []), { relation: fhForm.relation, disease: fhForm.disease || '—' }];
-                setFamilyHistory(next);
-                setFhForm({ disease: '', relation: 'Pai' });
-                setFhModalOpen(false);
-              }}
-              disabled={!fhForm.disease}
-            >
-              Salvar Registro
-            </Button>
-          </div>
-        </Modal>
-      </div>
-    );
-  }
-
-  if (step === 'first_experience') {
-    return (
-      <div className="p-8 animate-in min-h-screen flex flex-col">
-        <div className="flex-1 flex flex-col justify-center">
-           <h2 className="text-3xl font-black text-slate-900 mb-8">Tudo pronto! 🚀</h2>
-           <div className="space-y-4">
-             {[
-               { icon: Pill, title: 'Cadastre seus medicamentos', desc: 'Nunca mais esqueça uma dose.' },
-               { icon: Bell, title: 'Ative lembretes e alertas', desc: 'Notificações direto no seu celular.' },
-               { icon: Users, title: 'Convide sua rede de apoio', desc: 'Compartilhe sua jornada com quem ama.' }
-             ].map((item, i) => (
-               <div key={i} className="flex gap-4 p-5 bg-white rounded-3xl border border-slate-100">
-                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                    <item.icon size={24} />
-                 </div>
-                 <div>
-                   <h4 className="font-bold text-slate-900 text-sm">{item.title}</h4>
-                   <p className="text-xs text-slate-400">{item.desc}</p>
-                 </div>
-               </div>
-             ))}
-           </div>
-        </div>
-        <Button fullWidth onClick={() => onFinish({ name: 'Novo Usuário', role: 'patient' })} className="mt-8">Começar agora</Button>
       </div>
     );
   }
